@@ -1,0 +1,119 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  categorias    Categoria[]
+  lancamentos   Lancamento[]
+  fixas         DespesaFixa[]
+  investimentos Investimento[]
+  configuracoes Configuracao[]
+}
+
+model Categoria {
+  id        String   @id @default(cuid())
+  userId    String
+  nome      String
+  tipo      String   // "entrada" | "saida"
+  icone     String
+  cor       String
+  orcamento Float?
+  createdAt DateTime @default(now())
+
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lancamentos Lancamento[]
+  fixas       DespesaFixa[]
+
+  @@index([userId])
+}
+
+model Lancamento {
+  id           String   @id @default(cuid())
+  userId       String
+  descricao    String
+  valor        Float
+  tipo         String   // "entrada" | "saida"
+  data         DateTime
+  categoriaId  String
+  tags         String?
+  parcelas     Int?
+  parcelaAtual Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoria Categoria @relation(fields: [categoriaId], references: [id])
+
+  @@index([userId])
+  @@index([data])
+  @@index([categoriaId])
+}
+
+model DespesaFixa {
+  id            String    @id @default(cuid())
+  userId        String
+  descricao     String
+  valor         Float
+  diaVencimento Int
+  categoriaId   String
+  dataInicio    DateTime
+  dataFim       DateTime?
+  status        String    @default("ativa") // "ativa" | "pausada" | "encerrada"
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoria Categoria        @relation(fields: [categoriaId], references: [id])
+  historico HistoricoValor[]
+
+  @@index([userId])
+}
+
+model HistoricoValor {
+  id            String   @id @default(cuid())
+  despesaFixaId String
+  valor         Float
+  dataAlteracao DateTime @default(now())
+
+  despesaFixa DespesaFixa @relation(fields: [despesaFixaId], references: [id], onDelete: Cascade)
+}
+
+model Investimento {
+  id        String   @id @default(cuid())
+  userId    String
+  descricao String
+  valor     Float
+  classe    String   // "renda_fixa" | "acoes" | "fiis" | "cripto" | "internacional" | "outros"
+  data      DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([data])
+  @@index([classe])
+}
+
+model Configuracao {
+  id     String @id @default(cuid())
+  userId String
+  chave  String
+  valor  String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, chave])
+  @@index([userId])
+}
