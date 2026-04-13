@@ -18,9 +18,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
   AreaChart,
   Area,
   Legend,
@@ -29,6 +26,7 @@ import { motion } from 'framer-motion';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { ChartTooltip } from '@/components/charts/ChartTooltip';
+import { RadialChart } from '@/components/charts/RadialChart';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { HiddenValue } from '@/components/ui/HiddenValue';
 import { IconRenderer } from '@/components/ui/IconRenderer';
@@ -98,15 +96,15 @@ export default function DashboardPage() {
 
   if (loading || !data) {
     return (
-      <div className="space-y-4">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="space-y-3 sm:space-y-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="glass-card p-5 h-32 animate-pulse" />
+            <div key={i} className="glass-card p-4 sm:p-5 h-28 sm:h-32 animate-pulse" />
           ))}
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="glass-card p-5 h-80 lg:col-span-2 animate-pulse" />
-          <div className="glass-card p-5 h-80 animate-pulse" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
+          <div className="glass-card p-4 sm:p-5 h-64 sm:h-80 lg:col-span-2 animate-pulse" />
+          <div className="glass-card p-4 sm:p-5 h-64 sm:h-80 animate-pulse" />
         </div>
       </div>
     );
@@ -129,14 +127,14 @@ export default function DashboardPage() {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="glass-card p-5"
+      className="glass-card p-3 sm:p-5"
     >
-      <div className="flex items-start justify-between mb-3">
+      <div className="flex items-start justify-between mb-2 sm:mb-3">
         <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center"
+          className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center"
           style={{ backgroundColor: `${color}25`, color }}
         >
-          <Icon className="w-5 h-5" />
+          <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
         </div>
         {variation && variation.value !== 0 && (
           <Badge color={invertColor ? (variation.positive ? '#fb7185' : '#34d399') : variation.positive ? '#34d399' : '#fb7185'}>
@@ -145,17 +143,17 @@ export default function DashboardPage() {
           </Badge>
         )}
       </div>
-      <div className="text-xs text-secondary uppercase tracking-wide font-medium">{label}</div>
-      <div className="text-2xl sm:text-[28px] font-bold text-primary tabular leading-tight mt-1">
+      <div className="text-[10px] sm:text-xs text-secondary uppercase tracking-wide font-medium">{label}</div>
+      <div className="text-lg sm:text-[28px] font-bold text-primary tabular leading-tight mt-0.5 sm:mt-1 truncate">
         <HiddenValue value={value} />
       </div>
     </motion.div>
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         <KPI
           icon={TrendingUp}
           label="Entradas"
@@ -188,79 +186,44 @@ export default function DashboardPage() {
       </div>
 
       {/* Charts row 1 */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <GlassCard className="lg:col-span-2">
-          <h3 className="text-primary mb-4">Entradas vs Saídas (6 meses)</h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={data.last6}>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
+        <GlassCard className="lg:col-span-2 !p-3 sm:!p-5">
+          <h3 className="text-primary text-sm sm:text-base mb-3 sm:mb-4">Entradas vs Saídas (6 meses)</h3>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={data.last6} margin={{ left: -15, right: 5, top: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.1)" />
-              <XAxis dataKey="mes" stroke="rgba(148,163,184,0.7)" fontSize={11} />
+              <XAxis dataKey="mes" stroke="rgba(148,163,184,0.7)" fontSize={10} tickMargin={4} />
               <YAxis
                 stroke="rgba(148,163,184,0.7)"
-                fontSize={11}
+                fontSize={10}
                 tickFormatter={(v) => formatBRLCompact(v)}
+                width={50}
               />
               <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
-              <Legend wrapperStyle={{ fontSize: 12 }} iconType="circle" />
-              <Bar dataKey="entradas" name="Entradas" fill="#34d399" radius={[6, 6, 0, 0]} />
-              <Bar dataKey="saidas" name="Saídas" fill="#fb7185" radius={[6, 6, 0, 0]} />
+              <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" />
+              <Bar dataKey="entradas" name="Entradas" fill="#34d399" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="saidas" name="Saídas" fill="#fb7185" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </GlassCard>
 
-        <GlassCard>
-          <h3 className="text-primary mb-4">Gastos por categoria</h3>
+        <GlassCard className="!p-3 sm:!p-5">
+          <h3 className="text-primary text-sm sm:text-base mb-3 sm:mb-4">Gastos por categoria</h3>
           {data.gastosPorCategoria.length === 0 ? (
-            <div className="h-64 flex items-center justify-center text-secondary text-sm">
+            <div className="h-48 flex items-center justify-center text-secondary text-sm">
               Sem gastos no período
             </div>
           ) : (
-            <>
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie
-                    data={data.gastosPorCategoria}
-                    dataKey="valor"
-                    nameKey="nome"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={80}
-                    paddingAngle={2}
-                  >
-                    {data.gastosPorCategoria.map((c, i) => (
-                      <Cell key={i} fill={c.cor} />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<ChartTooltip />} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="mt-2 space-y-1 max-h-24 overflow-y-auto">
-                {data.gastosPorCategoria.slice(0, 5).map((c) => {
-                  const totalSaidas = data.gastosPorCategoria.reduce((s, x) => s + x.valor, 0);
-                  return (
-                    <div key={c.nome} className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: c.cor }} />
-                        <span className="text-secondary truncate">{c.nome}</span>
-                      </div>
-                      <span className="text-primary font-medium tabular">
-                        {((c.valor / totalSaidas) * 100).toFixed(0)}%
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </>
+            <RadialChart data={data.gastosPorCategoria} size={190} />
           )}
         </GlassCard>
       </div>
 
       {/* Patrimônio evolution */}
-      <GlassCard>
-        <h3 className="text-primary mb-4">Evolução do patrimônio (12 meses)</h3>
-        <ResponsiveContainer width="100%" height={240}>
-          <AreaChart data={data.evolucao12}>
+      <GlassCard className="!p-3 sm:!p-5">
+        <h3 className="text-primary text-sm sm:text-base mb-3 sm:mb-4">Evolução do patrimônio (12 meses)</h3>
+        <ResponsiveContainer width="100%" height={200}>
+          <AreaChart data={data.evolucao12} margin={{ left: -15, right: 5, top: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="patGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#a5b4fc" stopOpacity={0.5} />
@@ -268,11 +231,12 @@ export default function DashboardPage() {
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.1)" />
-            <XAxis dataKey="mes" stroke="rgba(148,163,184,0.7)" fontSize={11} />
+            <XAxis dataKey="mes" stroke="rgba(148,163,184,0.7)" fontSize={10} tickMargin={4} />
             <YAxis
               stroke="rgba(148,163,184,0.7)"
-              fontSize={11}
+              fontSize={10}
               tickFormatter={(v) => formatBRLCompact(v)}
+              width={50}
             />
             <Tooltip content={<ChartTooltip />} />
             <Area type="monotone" dataKey="valor" name="Patrimônio" stroke="#a5b4fc" fill="url(#patGrad)" strokeWidth={2} />
@@ -281,26 +245,26 @@ export default function DashboardPage() {
       </GlassCard>
 
       {/* Cards info row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <GlassCard>
-          <h3 className="text-primary mb-4">Orçamento vs Realizado</h3>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+        <GlassCard className="!p-3 sm:!p-5">
+          <h3 className="text-primary text-sm sm:text-base mb-3 sm:mb-4">Orçamento vs Realizado</h3>
           {data.orcamento.length === 0 ? (
             <p className="text-sm text-secondary">Defina orçamentos nas categorias para ver aqui.</p>
           ) : (
-            <div className="space-y-3 max-h-72 overflow-y-auto pr-2">
+            <div className="space-y-2.5 sm:space-y-3 max-h-64 sm:max-h-72 overflow-y-auto pr-1 sm:pr-2">
               {data.orcamento.map((o) => (
                 <div key={o.id}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-between mb-1 sm:mb-1.5">
+                    <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
                       <div
-                        className="w-7 h-7 rounded-lg flex items-center justify-center"
+                        className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center shrink-0"
                         style={{ backgroundColor: `${o.cor}25`, color: o.cor }}
                       >
-                        <IconRenderer name={o.icone} className="w-3.5 h-3.5" />
+                        <IconRenderer name={o.icone} className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                       </div>
-                      <span className="text-sm text-primary font-medium">{o.nome}</span>
+                      <span className="text-xs sm:text-sm text-primary font-medium truncate">{o.nome}</span>
                     </div>
-                    <span className="text-xs tabular text-secondary">
+                    <span className="text-[10px] sm:text-xs tabular text-secondary shrink-0 ml-2">
                       <HiddenValue value={o.realizado} /> / <HiddenValue value={o.orcamento} />
                     </span>
                   </div>
@@ -311,26 +275,26 @@ export default function DashboardPage() {
           )}
         </GlassCard>
 
-        <GlassCard>
-          <h3 className="text-primary mb-4">Próximas despesas fixas</h3>
+        <GlassCard className="!p-3 sm:!p-5">
+          <h3 className="text-primary text-sm sm:text-base mb-3 sm:mb-4">Próximas despesas fixas</h3>
           {data.fixasUpcoming.length === 0 ? (
             <p className="text-sm text-secondary">Sem despesas fixas ativas.</p>
           ) : (
-            <div className="space-y-2 max-h-72 overflow-y-auto pr-2">
+            <div className="space-y-1.5 sm:space-y-2 max-h-64 sm:max-h-72 overflow-y-auto pr-1 sm:pr-2">
               {data.fixasUpcoming.slice(0, 8).map((f) => (
-                <div key={f.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5">
+                <div key={f.id} className="flex items-center gap-2 sm:gap-3 p-1.5 sm:p-2 rounded-lg hover:bg-white/5">
                   <div
-                    className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                    className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center shrink-0"
                     style={{ backgroundColor: `${f.categoria.cor}25`, color: f.categoria.cor }}
                   >
-                    <IconRenderer name={f.categoria.icone} className="w-4 h-4" />
+                    <IconRenderer name={f.categoria.icone} className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm text-primary font-medium truncate">{f.descricao}</div>
-                    <div className="text-xs text-secondary">Dia {f.diaVencimento}</div>
+                    <div className="text-xs sm:text-sm text-primary font-medium truncate">{f.descricao}</div>
+                    <div className="text-[10px] sm:text-xs text-secondary">Dia {f.diaVencimento}</div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-sm tabular text-primary font-medium">
+                  <div className="text-right shrink-0">
+                    <div className="text-xs sm:text-sm tabular text-primary font-medium">
                       <HiddenValue value={f.valor} />
                     </div>
                     {f.diasRestantes >= 0 && (
@@ -347,43 +311,43 @@ export default function DashboardPage() {
       </div>
 
       {/* Indicadores */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <GlassCard>
-          <div className="flex items-center gap-2 mb-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+        <GlassCard className="!p-3 sm:!p-5">
+          <div className="flex items-center gap-2 mb-2 sm:mb-3">
             <PiggyBank className="w-4 h-4 text-emerald-400" />
-            <h3 className="text-primary !text-base">Índice de Poupança</h3>
+            <h3 className="text-primary !text-sm sm:!text-base">Índice de Poupança</h3>
           </div>
-          <div className="flex items-center justify-center my-2">
+          <div className="flex items-center justify-center my-1 sm:my-2">
             <CircularGauge value={data.indicadores.indicePoupanca} />
           </div>
-          <p className="text-xs text-secondary text-center">
+          <p className="text-[10px] sm:text-xs text-secondary text-center">
             do que entra, sobra para você
           </p>
         </GlassCard>
 
-        <GlassCard>
-          <div className="flex items-center gap-2 mb-3">
+        <GlassCard className="!p-3 sm:!p-5">
+          <div className="flex items-center gap-2 mb-2 sm:mb-3">
             <Activity className="w-4 h-4 text-cyan-400" />
-            <h3 className="text-primary !text-base">Fluxo Projetado</h3>
+            <h3 className="text-primary !text-sm sm:!text-base">Fluxo Projetado</h3>
           </div>
-          <div className="text-3xl font-bold tabular my-4 text-center">
+          <div className="text-2xl sm:text-3xl font-bold tabular my-3 sm:my-4 text-center">
             <span className={data.indicadores.fluxoProjetado >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
               <HiddenValue value={data.indicadores.fluxoProjetado} />
             </span>
           </div>
-          <p className="text-xs text-secondary text-center">saldo após fixas pendentes</p>
+          <p className="text-[10px] sm:text-xs text-secondary text-center">saldo após fixas pendentes</p>
         </GlassCard>
 
-        <GlassCard>
-          <div className="flex items-center gap-2 mb-3">
+        <GlassCard className="!p-3 sm:!p-5">
+          <div className="flex items-center gap-2 mb-2 sm:mb-3">
             <Target className="w-4 h-4 text-indigo-300" />
-            <h3 className="text-primary !text-base">Meta do Mês</h3>
+            <h3 className="text-primary !text-sm sm:!text-base">Meta do Mês</h3>
           </div>
           {data.indicadores.metaMensal > 0 ? (
             <>
-              <div className="text-2xl font-bold text-primary tabular text-center mt-3 mb-2">
+              <div className="text-xl sm:text-2xl font-bold text-primary tabular text-center mt-2 sm:mt-3 mb-1.5 sm:mb-2">
                 <HiddenValue value={k.saldo} /> /{' '}
-                <span className="text-secondary text-base">
+                <span className="text-secondary text-sm sm:text-base">
                   <HiddenValue value={data.indicadores.metaMensal} />
                 </span>
               </div>
@@ -391,7 +355,7 @@ export default function DashboardPage() {
                 value={data.indicadores.progressoMeta}
                 color={data.indicadores.progressoMeta >= 100 ? '#34d399' : '#a5b4fc'}
               />
-              <p className="text-xs text-secondary text-center mt-2">
+              <p className="text-[10px] sm:text-xs text-secondary text-center mt-1.5 sm:mt-2">
                 {Math.round(data.indicadores.progressoMeta)}% da meta
               </p>
             </>
@@ -411,7 +375,7 @@ function CircularGauge({ value }: { value: number }) {
   const offset = circ - (v / 100) * circ;
   const color = v >= 30 ? '#34d399' : v >= 15 ? '#f59e0b' : '#fb7185';
   return (
-    <div className="relative w-32 h-32">
+    <div className="relative w-24 h-24 sm:w-32 sm:h-32">
       <svg viewBox="0 0 120 120" className="-rotate-90">
         <circle cx="60" cy="60" r={radius} stroke="rgba(255,255,255,0.1)" strokeWidth="10" fill="none" />
         <circle
@@ -428,7 +392,7 @@ function CircularGauge({ value }: { value: number }) {
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <div className="text-2xl font-bold text-primary tabular">{v.toFixed(0)}%</div>
+        <div className="text-xl sm:text-2xl font-bold text-primary tabular">{v.toFixed(0)}%</div>
       </div>
     </div>
   );
