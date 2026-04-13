@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Lock, Mail, BarChart2, Loader2 } from 'lucide-react';
+import { Lock, Mail, Loader2 } from 'lucide-react';
+import { Logo } from '@/components/ui/Logo';
 import toast from 'react-hot-toast';
 
 export default function LoginPage() {
@@ -46,8 +47,8 @@ export default function LoginPage() {
         className="glass-card-strong p-8 w-full max-w-md"
       >
         <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-400 flex items-center justify-center shadow-lg mb-4">
-            <BarChart2 className="w-8 h-8 text-white" />
+          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-900 to-blue-700 flex items-center justify-center shadow-lg mb-4">
+            <Logo size={52} />
           </div>
           <h1 className="text-primary">JARVIS Finance</h1>
           <p className="text-secondary text-sm mt-1">Entre na sua conta</p>

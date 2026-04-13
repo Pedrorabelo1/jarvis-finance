@@ -7,7 +7,6 @@ import {
   ArrowLeftRight,
   Repeat,
   TrendingUp,
-  FileBarChart,
   Plus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -15,12 +14,15 @@ import { useState } from 'react';
 import { LancamentoForm } from '@/components/forms/LancamentoForm';
 import { Modal } from '@/components/ui/Modal';
 
-const items = [
+// Relatórios removido do nav mobile — acessível via Dashboard
+const itemsLeft = [
   { href: '/dashboard', label: 'Início', icon: LayoutDashboard },
   { href: '/lancamentos', label: 'Lanç.', icon: ArrowLeftRight },
+];
+
+const itemsRight = [
   { href: '/fixas', label: 'Fixas', icon: Repeat },
   { href: '/investimentos', label: 'Invest.', icon: TrendingUp },
-  { href: '/relatorios', label: 'Relat.', icon: FileBarChart },
 ];
 
 export function BottomNav() {
@@ -29,8 +31,10 @@ export function BottomNav() {
 
   return (
     <>
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 glass-card rounded-none rounded-t-2xl border-b-0 border-l-0 border-r-0 px-2 pt-2 pb-3 flex items-end justify-around">
-        {items.slice(0, 2).map((item) => {
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 glass-card rounded-none rounded-t-2xl border-b-0 border-l-0 border-r-0 px-2 pt-2 pb-safe-or-3 flex items-end justify-around"
+        style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}
+      >
+        {itemsLeft.map((item) => {
           const Icon = item.icon;
           const active = pathname.startsWith(item.href);
           return (
@@ -38,7 +42,7 @@ export function BottomNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                'flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg flex-1',
+                'flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg flex-1',
                 active ? 'text-blue-400' : 'text-secondary'
               )}
             >
@@ -48,16 +52,16 @@ export function BottomNav() {
           );
         })}
 
-        {/* FAB */}
+        {/* FAB — center */}
         <button
           onClick={() => setOpenQuick(true)}
-          className="-mt-6 w-14 h-14 rounded-full bg-gradient-to-br from-blue-600 to-blue-400 flex items-center justify-center shadow-xl text-white"
+          className="-mt-6 w-14 h-14 rounded-full bg-gradient-to-br from-blue-600 to-blue-400 flex items-center justify-center shadow-xl text-white flex-shrink-0"
           aria-label="Novo lançamento"
         >
           <Plus className="w-7 h-7" />
         </button>
 
-        {items.slice(2, 5).map((item) => {
+        {itemsRight.map((item) => {
           const Icon = item.icon;
           const active = pathname.startsWith(item.href);
           return (
@@ -65,7 +69,7 @@ export function BottomNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                'flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg flex-1',
+                'flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg flex-1',
                 active ? 'text-blue-400' : 'text-secondary'
               )}
             >

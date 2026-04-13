@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import {
   TrendingUp,
   TrendingDown,
@@ -9,6 +10,8 @@ import {
   Target,
   Activity,
   PiggyBank,
+  FileBarChart,
+  ChevronRight,
 } from 'lucide-react';
 import {
   BarChart,
@@ -364,6 +367,23 @@ export default function DashboardPage() {
           )}
         </GlassCard>
       </div>
+
+      {/* Link para Relatórios — visível no mobile (menu não tem Relatórios) */}
+      <Link
+        href="/relatorios"
+        className="md:hidden flex items-center justify-between glass-card !p-4 group hover:border-blue-500/30 transition-all"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-blue-500/15 flex items-center justify-center">
+            <FileBarChart className="w-4.5 h-4.5 text-blue-400" />
+          </div>
+          <div>
+            <div className="text-sm font-medium text-primary">Relatórios</div>
+            <div className="text-[10px] text-secondary">Análise completa do período</div>
+          </div>
+        </div>
+        <ChevronRight className="w-4 h-4 text-secondary group-hover:text-blue-400 transition-colors" />
+      </Link>
     </div>
   );
 }

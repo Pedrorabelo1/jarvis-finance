@@ -15,69 +15,77 @@ interface RadialChartProps {
 }
 
 /**
- * Radial bar chart — bars arranged in a circle radiating outward,
- * inspired by circular sunburst / radial bar visualizations.
+ * Radial bar chart — thin individual bars (sticks) arranged around a circle,
+ * each bar's length proportional to its value. Matches the "circular barcode"
+ * sunburst reference style.
  */
 export function RadialChart({ data, size = 220, className = '' }: RadialChartProps) {
-  const chart = useMemo(() => {
-    if (!data || data.length === 0) return null;
+  const totalBars = 60; // total number of thin bars around the circle
+
+  const bars = useMemo(() => {
+    if (!data || data.length === 0) return [];
 
     const sorted = [...data].sort((a, b) => b.valor - a.valor);
-    const maxVal = sorted[0]?.valor || 1;
-    const count = sorted.length;
+    const total = sorted.reduce((s, d) => s + d.valor, 0);
+    if (total === 0) return [];
+
+    // Distribute bars proportionally to each category's value
+    const barAssignments: { cor: string; nome: string; valor: number; ratio: number }[] = [];
+    let remaining = totalBars;
+
+    sorted.forEach((item, idx) => {
+      const proportion = item.valor / total;
+      const count = idx === sorted.length - 1
+        ? remaining
+        : Math.max(1, Math.round(proportion * totalBars));
+      remaining -= count;
+      if (remaining < 0) remaining = 0;
+
+      // Each bar in this category gets the same height ratio
+      const maxVal = sorted[0].valor;
+      const ratio = 0.35 + (item.valor / maxVal) * 0.65; // min 35% height, max 100%
+
+      for (let i = 0; i < count; i++) {
+        barAssignments.push({ cor: item.cor, nome: item.nome, valor: item.valor, ratio });
+      }
+    });
 
     const cx = size / 2;
     const cy = size / 2;
-    const innerR = size * 0.2;
-    const maxOuterR = size * 0.46;
-    const barGap = 1.5; // degrees gap between bars
-    const totalGap = barGap * count;
-    const availableDeg = 360 - totalGap;
-    const barAngle = availableDeg / count;
+    const innerR = size * 0.22;
+    const maxBarLen = size * 0.24;
+    const barWidth = 3;
+    const gap = 1.2; // degrees gap between bars
+    const totalAngle = 360;
+    const anglePerBar = totalAngle / barAssignments.length;
 
-    const bars = sorted.map((item, i) => {
-      const startAngle = i * (barAngle + barGap) - 90; // start from top
-      const endAngle = startAngle + barAngle;
-      const ratio = item.valor / maxVal;
-      const outerR = innerR + (maxOuterR - innerR) * ratio;
+    return barAssignments.map((bar, i) => {
+      const angleDeg = i * anglePerBar - 90; // start from top
+      const angleRad = (angleDeg * Math.PI) / 180;
+      const barLen = maxBarLen * bar.ratio;
 
-      const startRad = (startAngle * Math.PI) / 180;
-      const endRad = (endAngle * Math.PI) / 180;
-
-      const x1 = cx + innerR * Math.cos(startRad);
-      const y1 = cy + innerR * Math.sin(startRad);
-      const x2 = cx + outerR * Math.cos(startRad);
-      const y2 = cy + outerR * Math.sin(startRad);
-      const x3 = cx + outerR * Math.cos(endRad);
-      const y3 = cy + outerR * Math.sin(endRad);
-      const x4 = cx + innerR * Math.cos(endRad);
-      const y4 = cy + innerR * Math.sin(endRad);
-
-      const largeArc = barAngle > 180 ? 1 : 0;
-
-      const d = [
-        `M ${x1} ${y1}`,
-        `L ${x2} ${y2}`,
-        `A ${outerR} ${outerR} 0 ${largeArc} 1 ${x3} ${y3}`,
-        `L ${x4} ${y4}`,
-        `A ${innerR} ${innerR} 0 ${largeArc} 0 ${x1} ${y1}`,
-        'Z',
-      ].join(' ');
+      const x1 = cx + innerR * Math.cos(angleRad);
+      const y1 = cy + innerR * Math.sin(angleRad);
+      const x2 = cx + (innerR + barLen) * Math.cos(angleRad);
+      const y2 = cy + (innerR + barLen) * Math.sin(angleRad);
 
       return (
-        <path
-          key={item.nome}
-          d={d}
-          fill={item.cor}
-          opacity={0.85}
+        <line
+          key={i}
+          x1={x1}
+          y1={y1}
+          x2={x2}
+          y2={y2}
+          stroke={bar.cor}
+          strokeWidth={barWidth}
+          strokeLinecap="round"
+          opacity={0.9}
           className="transition-opacity duration-200 hover:opacity-100"
         >
-          <title>{`${item.nome}: R$ ${item.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}</title>
-        </path>
+          <title>{`${bar.nome}: R$ ${bar.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}</title>
+        </line>
       );
     });
-
-    return bars;
   }, [data, size]);
 
   if (!data || data.length === 0) {
@@ -87,6 +95,8 @@ export function RadialChart({ data, size = 220, className = '' }: RadialChartPro
       </div>
     );
   }
+
+  const total = data.reduce((s, d) => s + d.valor, 0);
 
   return (
     <div className={`flex flex-col items-center ${className}`}>
@@ -100,12 +110,15 @@ export function RadialChart({ data, size = 220, className = '' }: RadialChartPro
         <circle
           cx={size / 2}
           cy={size / 2}
-          r={size * 0.18}
-          fill="rgba(255,255,255,0.03)"
-          stroke="rgba(96,165,250,0.1)"
-          strokeWidth="1"
+          r={size * 0.2}
+          fill="rgba(10,15,30,0.8)"
+          stroke="rgba(96,165,250,0.12)"
+          strokeWidth="1.5"
         />
-        {chart}
+
+        {/* Bars */}
+        {bars}
+
         {/* Center text */}
         <text
           x={size / 2}
@@ -125,7 +138,7 @@ export function RadialChart({ data, size = 220, className = '' }: RadialChartPro
           fontSize={size * 0.055}
           fontWeight="600"
         >
-          {`R$ ${data.reduce((s, d) => s + d.valor, 0).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`}
+          {`R$ ${total.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`}
         </text>
       </svg>
 

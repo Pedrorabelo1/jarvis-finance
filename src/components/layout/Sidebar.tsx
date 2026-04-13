@@ -13,9 +13,9 @@ import {
   Sun,
   Moon,
   LogOut,
-  BarChart2,
 } from 'lucide-react';
 import { useFinanceStore } from '@/store/useFinanceStore';
+import { Logo } from '@/components/ui/Logo';
 import { cn } from '@/lib/utils';
 
 const navItems = [
@@ -64,8 +64,8 @@ export function Sidebar({ user }: SidebarProps) {
     >
       {/* Logo */}
       <div className={cn('flex items-center gap-3 px-4 mb-6 h-10', expanded ? 'justify-start' : 'justify-center')}>
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-blue-400 flex items-center justify-center flex-shrink-0">
-          <BarChart2 className="w-5 h-5 text-white" />
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-900 to-blue-700 flex items-center justify-center flex-shrink-0">
+          <Logo size={22} />
         </div>
         {expanded && (
           <span className="font-semibold text-primary whitespace-nowrap">JARVIS</span>
