@@ -15,12 +15,11 @@ interface RadialChartProps {
 }
 
 /**
- * Radial bar chart — thin individual bars (sticks) arranged around a circle,
- * each bar's length proportional to its value. Matches the "circular barcode"
- * sunburst reference style.
+ * Radial bar chart — uniform-length thin bars arranged around a full circle.
+ * Each category occupies a proportional arc; bars are same height, color-coded.
  */
 export function RadialChart({ data, size = 220, className = '' }: RadialChartProps) {
-  const totalBars = 60; // total number of thin bars around the circle
+  const totalBars = 72; // total sticks around the circle
 
   const bars = useMemo(() => {
     if (!data || data.length === 0) return [];
@@ -29,40 +28,32 @@ export function RadialChart({ data, size = 220, className = '' }: RadialChartPro
     const total = sorted.reduce((s, d) => s + d.valor, 0);
     if (total === 0) return [];
 
-    // Distribute bars proportionally to each category's value
-    const barAssignments: { cor: string; nome: string; valor: number; ratio: number }[] = [];
+    // Assign bars proportionally, sum must equal totalBars
+    const assignments: { cor: string; nome: string }[] = [];
     let remaining = totalBars;
 
     sorted.forEach((item, idx) => {
-      const proportion = item.valor / total;
-      const count = idx === sorted.length - 1
+      const isLast = idx === sorted.length - 1;
+      const count = isLast
         ? remaining
-        : Math.max(1, Math.round(proportion * totalBars));
-      remaining -= count;
-      if (remaining < 0) remaining = 0;
-
-      // Each bar in this category gets the same height ratio
-      const maxVal = sorted[0].valor;
-      const ratio = 0.35 + (item.valor / maxVal) * 0.65; // min 35% height, max 100%
-
-      for (let i = 0; i < count; i++) {
-        barAssignments.push({ cor: item.cor, nome: item.nome, valor: item.valor, ratio });
+        : Math.max(1, Math.round((item.valor / total) * totalBars));
+      const actual = Math.min(count, remaining);
+      remaining -= actual;
+      for (let i = 0; i < actual; i++) {
+        assignments.push({ cor: item.cor, nome: item.nome });
       }
     });
 
     const cx = size / 2;
     const cy = size / 2;
-    const innerR = size * 0.22;
-    const maxBarLen = size * 0.24;
-    const barWidth = 3;
-    const gap = 1.2; // degrees gap between bars
-    const totalAngle = 360;
-    const anglePerBar = totalAngle / barAssignments.length;
+    const innerR = size * 0.24;   // inner ring radius
+    const barLen = size * 0.22;   // ALL bars same length
+    const barWidth = Math.max(2, (size / totalBars) * 1.8);
+    const anglePerBar = 360 / assignments.length;
 
-    return barAssignments.map((bar, i) => {
+    return assignments.map((bar, i) => {
       const angleDeg = i * anglePerBar - 90; // start from top
       const angleRad = (angleDeg * Math.PI) / 180;
-      const barLen = maxBarLen * bar.ratio;
 
       const x1 = cx + innerR * Math.cos(angleRad);
       const y1 = cy + innerR * Math.sin(angleRad);
@@ -79,10 +70,9 @@ export function RadialChart({ data, size = 220, className = '' }: RadialChartPro
           stroke={bar.cor}
           strokeWidth={barWidth}
           strokeLinecap="round"
-          opacity={0.9}
-          className="transition-opacity duration-200 hover:opacity-100"
+          opacity={0.92}
         >
-          <title>{`${bar.nome}: R$ ${bar.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}</title>
+          <title>{bar.nome}</title>
         </line>
       );
     });
@@ -106,25 +96,24 @@ export function RadialChart({ data, size = 220, className = '' }: RadialChartPro
         viewBox={`0 0 ${size} ${size}`}
         className="mx-auto"
       >
-        {/* Inner circle background */}
+        {/* Inner circle */}
         <circle
           cx={size / 2}
           cy={size / 2}
-          r={size * 0.2}
-          fill="rgba(10,15,30,0.8)"
-          stroke="rgba(96,165,250,0.12)"
-          strokeWidth="1.5"
+          r={size * 0.22}
+          fill="rgba(10,15,30,0.85)"
+          stroke="rgba(96,165,250,0.15)"
+          strokeWidth="1"
         />
 
-        {/* Bars */}
         {bars}
 
-        {/* Center text */}
+        {/* Center label */}
         <text
           x={size / 2}
-          y={size / 2 - 6}
+          y={size / 2 - 7}
           textAnchor="middle"
-          className="fill-current text-secondary"
+          fill="rgba(148,163,184,0.8)"
           fontSize={size * 0.045}
           fontWeight="500"
         >
@@ -132,11 +121,11 @@ export function RadialChart({ data, size = 220, className = '' }: RadialChartPro
         </text>
         <text
           x={size / 2}
-          y={size / 2 + 10}
+          y={size / 2 + 9}
           textAnchor="middle"
-          className="fill-current text-primary"
-          fontSize={size * 0.055}
-          fontWeight="600"
+          fill="white"
+          fontSize={size * 0.058}
+          fontWeight="700"
         >
           {`R$ ${total.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`}
         </text>
