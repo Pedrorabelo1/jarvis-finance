@@ -15,7 +15,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <BottomNav />
       <main className="md:pl-[64px] pb-24 md:pb-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4">
-          <Header />
+          <Header user={user} />
           {children}
         </div>
       </main>

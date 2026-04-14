@@ -4,34 +4,32 @@
 
 @layer base {
   :root {
-    /* Light mode (mantém uma versão clara mas em tons de azul/branco) */
-    --bg-from: #e0e7ff;
-    --bg-mid: #c7d2fe;
+    /* Light mode — azul claro, branco, clean */
+    --bg-from: #f0f7ff;
+    --bg-mid: #e8f2ff;
     --bg-to: #ffffff;
 
-    --text-primary: #020617;
+    --text-primary: #0f172a;
     --text-secondary: #475569;
-    --text-tertiary: #64748b;
+    --text-tertiary: #94a3b8;
 
-    --glass-bg: rgba(255, 255, 255, 0.55);
-    --glass-border: rgba(255, 255, 255, 0.85);
-    --glass-shadow: 0 8px 32px rgba(30, 64, 175, 0.08);
+    --glass-bg: rgba(255, 255, 255, 0.82);
+    --glass-border: rgba(186, 214, 255, 0.7);
+    --glass-shadow: 0 4px 24px rgba(37, 99, 235, 0.08), 0 1px 4px rgba(37, 99, 235, 0.05);
 
-    /* Brand: azul royal saturado */
-    --accent-primary: #2563eb;     /* blue-600 */
-    --accent-secondary: #60a5fa;   /* blue-400 */
-    --accent-bright: #3b82f6;      /* blue-500 */
-    --accent-deep: #1e3a8a;        /* blue-900 */
+    --accent-primary: #2563eb;
+    --accent-secondary: #60a5fa;
+    --accent-bright: #3b82f6;
+    --accent-deep: #1e3a8a;
 
-    /* Semânticos */
-    --accent-positive: #34d399;    /* emerald-400 — entradas (suave) */
-    --accent-negative: #fb7185;    /* rose-400 — saídas (suave) */
-    --accent-info: #22d3ee;        /* cyan-400 */
-    --accent-investido: #818cf8;   /* indigo-400 */
+    --accent-positive: #10b981;
+    --accent-negative: #f43f5e;
+    --accent-info: #06b6d4;
+    --accent-investido: #6366f1;
   }
 
   .dark {
-    /* Dark mode — paleta Bloom: preto profundo + azul royal + branco */
+    /* Dark mode — preto profundo + azul royal */
     --bg-from: #000000;
     --bg-mid: #050b1f;
     --bg-to: #020617;
@@ -44,7 +42,6 @@
     --glass-border: rgba(96, 165, 250, 0.12);
     --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(59, 130, 246, 0.06);
 
-    /* Brand: azul royal mais brilhante no dark */
     --accent-primary: #3b82f6;
     --accent-secondary: #60a5fa;
     --accent-bright: #93c5fd;
@@ -69,6 +66,14 @@
     background: #000000;
   }
 
+  .dark body {
+    background: #000000;
+  }
+
+  :root:not(.dark) body {
+    background: #f0f7ff;
+  }
+
   .tabular {
     font-variant-numeric: tabular-nums;
   }
@@ -78,13 +83,8 @@
   h3 { font-size: 18px; font-weight: 600; }
 
   /* Scrollbar */
-  ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
-  }
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb {
     background: rgba(96, 165, 250, 0.2);
     border-radius: 10px;
@@ -93,8 +93,11 @@
     background: rgba(96, 165, 250, 0.4);
   }
 
-  /* Selection */
   ::selection {
+    background: rgba(59, 130, 246, 0.3);
+    color: #0f172a;
+  }
+  .dark ::selection {
     background: rgba(59, 130, 246, 0.4);
     color: #ffffff;
   }
@@ -131,11 +134,15 @@
     width: 100%;
     transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
   }
+  :root:not(.dark) .glass-input {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(186, 214, 255, 0.8);
+  }
   .glass-input:focus {
     outline: none;
     border-color: var(--accent-primary);
     background: rgba(59, 130, 246, 0.06);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
   }
 
   .glass-button {
@@ -151,6 +158,10 @@
     transition: transform 0.15s, background 0.15s, border-color 0.15s;
     cursor: pointer;
   }
+  :root:not(.dark) .glass-button {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(186, 214, 255, 0.8);
+  }
   .glass-button:hover {
     transform: translateY(-1px);
     border-color: var(--accent-primary);
@@ -165,10 +176,7 @@
   .text-tertiary { color: var(--text-tertiary); }
 
   /* ============================================
-     Animated background — Bloom-style
-     ============================================
-     Black base + giant radial blue spotlights
-     that drift slowly across the viewport.
+     Animated background
   */
   .animated-bg {
     position: fixed;
@@ -178,7 +186,6 @@
     overflow: hidden;
   }
 
-  /* Three blue light orbs that move independently */
   .animated-bg::before,
   .animated-bg::after {
     content: '';
@@ -203,44 +210,43 @@
     filter: blur(50px);
   }
 
-  /* Light mode override — softer */
+  /* Light mode — branco com manchas azul-céu suaves */
   :root:not(.dark) .animated-bg {
-    background: #ffffff;
+    background: #f0f7ff;
   }
   :root:not(.dark) .animated-bg::before {
     background-image:
-      radial-gradient(ellipse 60% 50% at 20% 30%, rgba(99, 102, 241, 0.25), transparent 60%),
-      radial-gradient(ellipse 50% 40% at 80% 70%, rgba(59, 130, 246, 0.2), transparent 60%);
+      radial-gradient(ellipse 70% 60% at 10% 20%, rgba(147, 197, 253, 0.6), transparent 55%),
+      radial-gradient(ellipse 55% 50% at 90% 80%, rgba(191, 219, 254, 0.5), transparent 55%);
+    filter: blur(50px);
   }
   :root:not(.dark) .animated-bg::after {
     background-image:
-      radial-gradient(ellipse 45% 40% at 70% 20%, rgba(96, 165, 250, 0.2), transparent 60%),
-      radial-gradient(ellipse 55% 50% at 30% 85%, rgba(129, 140, 248, 0.18), transparent 60%);
+      radial-gradient(ellipse 50% 45% at 75% 15%, rgba(224, 242, 254, 0.8), transparent 55%),
+      radial-gradient(ellipse 60% 55% at 20% 90%, rgba(186, 230, 253, 0.5), transparent 55%);
+    filter: blur(60px);
+  }
+
+  /* Bottom sheet slide-up animation */
+  @keyframes slide-up {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+  .animate-slide-up {
+    animation: slide-up 0.28s cubic-bezier(0.34, 1.2, 0.64, 1) both;
   }
 }
 
 @keyframes orbDrift1 {
-  0% {
-    transform: translate(0, 0) scale(1);
-  }
-  50% {
-    transform: translate(-5%, 4%) scale(1.05);
-  }
-  100% {
-    transform: translate(4%, -3%) scale(0.98);
-  }
+  0%   { transform: translate(0, 0) scale(1); }
+  50%  { transform: translate(-5%, 4%) scale(1.05); }
+  100% { transform: translate(4%, -3%) scale(0.98); }
 }
 
 @keyframes orbDrift2 {
-  0% {
-    transform: translate(0, 0) scale(1);
-  }
-  50% {
-    transform: translate(6%, -4%) scale(0.95);
-  }
-  100% {
-    transform: translate(-4%, 5%) scale(1.04);
-  }
+  0%   { transform: translate(0, 0) scale(1); }
+  50%  { transform: translate(6%, -4%) scale(0.95); }
+  100% { transform: translate(-4%, 5%) scale(1.04); }
 }
 
 /* Print styles */
