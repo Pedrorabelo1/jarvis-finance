@@ -64,8 +64,8 @@ export function Sidebar({ user }: SidebarProps) {
     >
       {/* Logo */}
       <div className={cn('flex items-center gap-3 px-4 mb-6 h-10', expanded ? 'justify-start' : 'justify-center')}>
-        <div className="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0">
-          <Logo size={32} className="w-full h-full object-cover" />
+        <div className="w-8 h-8 flex-shrink-0">
+          <Logo size={32} className="w-full h-full object-contain" />
         </div>
         {expanded && (
           <span className="font-semibold text-primary whitespace-nowrap">JARVIS</span>
