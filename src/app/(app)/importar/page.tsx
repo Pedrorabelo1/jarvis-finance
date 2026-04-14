@@ -7,7 +7,7 @@ import {
   ArrowDownCircle, ArrowUpCircle, Info,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { formatCurrency } from '@/lib/formatters';
+import { formatBRL } from '@/lib/formatters';
 import toast from 'react-hot-toast';
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -410,7 +410,7 @@ function TransacaoCard({
           'text-sm font-semibold tabular flex-shrink-0',
           t.tipo === 'saida' ? 'text-rose-400' : 'text-emerald-400'
         )}>
-          {t.tipo === 'saida' ? '-' : '+'}{formatCurrency(t.valor)}
+          {t.tipo === 'saida' ? '-' : '+'}{formatBRL(t.valor)}
         </div>
 
         {/* Expand */}
