@@ -47,8 +47,8 @@ export default function LoginPage() {
         className="glass-card-strong p-8 w-full max-w-md"
       >
         <div className="flex flex-col items-center mb-8">
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-900 to-blue-700 flex items-center justify-center shadow-lg mb-4">
-            <Logo size={52} />
+          <div className="mb-4">
+            <Logo size={96} />
           </div>
           <h1 className="text-primary">JARVIS Finance</h1>
           <p className="text-secondary text-sm mt-1">Entre na sua conta</p>
