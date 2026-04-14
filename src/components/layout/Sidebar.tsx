@@ -13,6 +13,7 @@ import {
   Sun,
   Moon,
   LogOut,
+  FileUp,
 } from 'lucide-react';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { Logo } from '@/components/ui/Logo';
@@ -25,6 +26,7 @@ const navItems = [
   { href: '/categorias', label: 'Categorias', icon: Tags },
   { href: '/investimentos', label: 'Investimentos', icon: TrendingUp },
   { href: '/relatorios', label: 'Relatórios', icon: FileBarChart },
+  { href: '/importar', label: 'Importar Extrato', icon: FileUp },
 ];
 
 interface SidebarProps {
