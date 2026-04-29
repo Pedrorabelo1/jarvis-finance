@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
@@ -13,6 +13,7 @@ const schema = z.object({
   valor: z.coerce.number().positive(),
   classe: z.enum(['renda_fixa', 'acoes', 'fiis', 'cripto', 'internacional', 'outros']),
   data: z.string().min(1),
+  quantidadeBTC: z.coerce.number().min(0).optional().nullable(),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -25,25 +26,32 @@ interface Props {
 export function InvestimentoForm({ initial, onSuccess }: Props) {
   const [submitting, setSubmitting] = useState(false);
 
-  const { register, handleSubmit } = useForm<FormData>({
+  const { register, handleSubmit, control } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
       descricao: initial?.descricao || '',
       valor: initial?.valor,
       classe: initial?.classe || 'renda_fixa',
       data: initial?.data ? initial.data.slice(0, 10) : new Date().toISOString().slice(0, 10),
+      quantidadeBTC: initial?.quantidadeBTC ?? null,
     },
   });
+
+  const classeWatched = useWatch({ control, name: 'classe' });
 
   async function onSubmit(data: FormData) {
     setSubmitting(true);
     try {
       const url = initial ? `/api/investimentos/${initial.id}` : '/api/investimentos';
       const method = initial ? 'PATCH' : 'POST';
+      const payload = {
+        ...data,
+        quantidadeBTC: data.classe === 'cripto' && data.quantidadeBTC ? data.quantidadeBTC : null,
+      };
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error();
       toast.success(initial ? 'Aporte atualizado' : 'Aporte registrado');
@@ -64,7 +72,7 @@ export function InvestimentoForm({ initial, onSuccess }: Props) {
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs font-medium text-secondary mb-1.5">Valor</label>
+          <label className="block text-xs font-medium text-secondary mb-1.5">Valor (R$)</label>
           <input type="number" step="0.01" className="glass-input tabular" {...register('valor')} />
         </div>
         <div>
@@ -83,6 +91,22 @@ export function InvestimentoForm({ initial, onSuccess }: Props) {
           ))}
         </select>
       </div>
+
+      {classeWatched === 'cripto' && (
+        <div>
+          <label className="block text-xs font-medium text-secondary mb-1.5">
+            Quantidade de BTC <span className="text-tertiary">(opcional)</span>
+          </label>
+          <input
+            type="number"
+            step="0.00000001"
+            placeholder="Ex: 0.00500000"
+            className="glass-input tabular"
+            {...register('quantidadeBTC')}
+          />
+          <p className="text-[10px] text-tertiary mt-1">Informe a quantidade de Bitcoin para rastrear o preço ao vivo.</p>
+        </div>
+      )}
 
       <button
         type="submit"

@@ -8,6 +8,7 @@ const updateSchema = z.object({
   valor: z.number().positive().optional(),
   classe: z.enum(['renda_fixa', 'acoes', 'fiis', 'cripto', 'internacional', 'outros']).optional(),
   data: z.string().or(z.date()).optional(),
+  quantidadeBTC: z.number().min(0).optional().nullable(),
 });
 
 async function ensureOwned(userId: string, id: string) {

@@ -60,6 +60,7 @@ export interface Investimento {
   id: string;
   descricao: string;
   valor: number;
+  quantidadeBTC?: number | null;
   classe: ClasseInvestimento;
   data: string;
   createdAt: string;

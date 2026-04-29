@@ -15,12 +15,14 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  categorias         Categoria[]
-  lancamentos        Lancamento[]
-  fixas              DespesaFixa[]
-  investimentos      Investimento[]
-  configuracoes      Configuracao[]
-  regrasDestinatario RegraDestinatario[]
+  categorias             Categoria[]
+  lancamentos            Lancamento[]
+  fixas                  DespesaFixa[]
+  investimentos          Investimento[]
+  configuracoes          Configuracao[]
+  regrasDestinatario     RegraDestinatario[]
+  rentabilidadeConfigs   RentabilidadeConfig[]
+  metaInvestimento       MetaInvestimento?
 }
 
 model Categoria {
@@ -93,13 +95,14 @@ model HistoricoValor {
 }
 
 model Investimento {
-  id        String   @id @default(cuid())
-  userId    String
-  descricao String
-  valor     Float
-  classe    String   // "renda_fixa" | "acoes" | "fiis" | "cripto" | "internacional" | "outros"
-  data      DateTime
-  createdAt DateTime @default(now())
+  id            String   @id @default(cuid())
+  userId        String
+  descricao     String
+  valor         Float
+  quantidadeBTC Float?
+  classe        String   // "renda_fixa" | "acoes" | "fiis" | "cripto" | "internacional" | "outros"
+  data          DateTime
+  createdAt     DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -134,4 +137,27 @@ model RegraDestinatario {
   categoria Categoria @relation(fields: [categoriaId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model RentabilidadeConfig {
+  id         String   @id @default(cuid())
+  userId     String
+  classe     String
+  taxaMensal Float    @default(0)
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, classe])
+  @@index([userId])
+}
+
+model MetaInvestimento {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  aporteMensal   Float?
+  patrimonioAlvo Float?
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

@@ -8,6 +8,7 @@ const createSchema = z.object({
   valor: z.number().positive(),
   classe: z.enum(['renda_fixa', 'acoes', 'fiis', 'cripto', 'internacional', 'outros']),
   data: z.string().or(z.date()),
+  quantidadeBTC: z.number().min(0).optional().nullable(),
 });
 
 export async function GET() {
