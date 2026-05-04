@@ -15,21 +15,23 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  categorias             Categoria[]
-  lancamentos            Lancamento[]
-  fixas                  DespesaFixa[]
-  investimentos          Investimento[]
-  configuracoes          Configuracao[]
-  regrasDestinatario     RegraDestinatario[]
-  rentabilidadeConfigs   RentabilidadeConfig[]
-  metaInvestimento       MetaInvestimento?
+  categorias               Categoria[]
+  lancamentos              Lancamento[]
+  fixas                    DespesaFixa[]
+  investimentos            Investimento[]
+  configuracoes            Configuracao[]
+  regrasDestinatario       RegraDestinatario[]
+  rentabilidadeConfigs     RentabilidadeConfig[]
+  metaInvestimento         MetaInvestimento?
+  categoriasInvestimento   CategoriaInvestimento[]
+  rendimentosMensais       RendimentoMensal[]
 }
 
 model Categoria {
   id        String   @id @default(cuid())
   userId    String
   nome      String
-  tipo      String   // "entrada" | "saida"
+  tipo      String
   icone     String
   cor       String
   orcamento Float?
@@ -48,7 +50,7 @@ model Lancamento {
   userId       String
   descricao    String
   valor        Float
-  tipo         String   // "entrada" | "saida"
+  tipo         String
   data         DateTime
   categoriaId  String
   tags         String?
@@ -74,7 +76,7 @@ model DespesaFixa {
   categoriaId   String
   dataInicio    DateTime
   dataFim       DateTime?
-  status        String    @default("ativa") // "ativa" | "pausada" | "encerrada"
+  status        String    @default("ativa")
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -95,20 +97,21 @@ model HistoricoValor {
 }
 
 model Investimento {
-  id            String   @id @default(cuid())
-  userId        String
-  descricao     String
-  valor         Float
-  quantidadeBTC Float?
-  classe        String   // "renda_fixa" | "acoes" | "fiis" | "cripto" | "internacional" | "outros"
-  data          DateTime
-  createdAt     DateTime @default(now())
+  id                    String   @id @default(cuid())
+  userId                String
+  descricao             String
+  valor                 Float
+  quantidadeBTC         Float?
+  classe                String?  // legado — mantido para compatibilidade
+  categoriaInvestimentoId String?
+  data                  DateTime
+  createdAt             DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoriaInvestimento CategoriaInvestimento? @relation(fields: [categoriaInvestimentoId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([data])
-  @@index([classe])
 }
 
 model Configuracao {
@@ -126,10 +129,10 @@ model Configuracao {
 model RegraDestinatario {
   id          String   @id @default(cuid())
   userId      String
-  padrao      String   // texto que aparece na descrição do extrato (case-insensitive match)
+  padrao      String
   categoriaId String
-  tipo        String   // "entrada" | "saida"
-  descricao   String?  // descrição personalizada opcional
+  tipo        String
+  descricao   String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -160,4 +163,42 @@ model MetaInvestimento {
   updatedAt      DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ── Novo sistema de investimentos ──────────────────────────────────────────
+
+model CategoriaInvestimento {
+  id        String   @id @default(cuid())
+  userId    String
+  nome      String
+  cor       String   @default("#3b82f6")
+  icone     String   @default("📈")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  investimentos     Investimento[]
+  rendimentosMensais RendimentoMensal[]
+
+  @@index([userId])
+}
+
+model RendimentoMensal {
+  id                      String   @id @default(cuid())
+  userId                  String
+  categoriaInvestimentoId String
+  ano                     Int
+  mes                     Int      // 1–12
+  valorRendimento         Float?   // R$ absoluto
+  percentual              Float?   // % do período
+  observacao              String?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  user                  User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoriaInvestimento CategoriaInvestimento @relation(fields: [categoriaInvestimentoId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, categoriaInvestimentoId, ano, mes])
+  @@index([userId])
+  @@index([categoriaInvestimentoId])
 }

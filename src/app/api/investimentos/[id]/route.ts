@@ -6,7 +6,8 @@ import { withUser } from '@/lib/api-helpers';
 const updateSchema = z.object({
   descricao: z.string().optional(),
   valor: z.number().positive().optional(),
-  classe: z.enum(['renda_fixa', 'acoes', 'fiis', 'cripto', 'internacional', 'outros']).optional(),
+  classe: z.string().optional().nullable(),
+  categoriaInvestimentoId: z.string().optional().nullable(),
   data: z.string().or(z.date()).optional(),
   quantidadeBTC: z.number().min(0).optional().nullable(),
 });
@@ -17,26 +18,23 @@ async function ensureOwned(userId: string, id: string) {
   return i;
 }
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   return withUser(async (userId) => {
     await ensureOwned(userId, params.id);
     const body = await request.json();
     const data = updateSchema.parse(body);
     const inv = await prisma.investimento.update({
       where: { id: params.id },
-      data: { ...data, ...(data.data ? { data: new Date(data.data) } : {}) },
+      data: { ...data, ...(data.data ? { data: new Date(data.data as string) } : {}) },
+      include: {
+        categoriaInvestimento: { select: { id: true, nome: true, cor: true, icone: true } },
+      },
     });
     return { data: inv };
   });
 }
 
-export async function DELETE(
-  _request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
   return withUser(async (userId) => {
     await ensureOwned(userId, params.id);
     await prisma.investimento.delete({ where: { id: params.id } });

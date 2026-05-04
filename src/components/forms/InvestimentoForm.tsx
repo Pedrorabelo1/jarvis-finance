@@ -1,17 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { Loader2 } from 'lucide-react';
-import { CLASSES_INVESTIMENTO, Investimento } from '@/types';
+import { Investimento, CategoriaInvestimento } from '@/types';
 
 const schema = z.object({
-  descricao: z.string().min(1),
-  valor: z.coerce.number().positive(),
-  classe: z.enum(['renda_fixa', 'acoes', 'fiis', 'cripto', 'internacional', 'outros']),
+  descricao: z.string().min(1, 'Obrigatório'),
+  valor: z.coerce.number().positive('Valor deve ser positivo'),
+  categoriaInvestimentoId: z.string().min(1, 'Selecione uma categoria'),
   data: z.string().min(1),
   quantidadeBTC: z.coerce.number().min(0).optional().nullable(),
 });
@@ -25,19 +25,30 @@ interface Props {
 
 export function InvestimentoForm({ initial, onSuccess }: Props) {
   const [submitting, setSubmitting] = useState(false);
+  const [categorias, setCategorias] = useState<CategoriaInvestimento[]>([]);
+  const [loadingCats, setLoadingCats] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/categorias-investimento')
+      .then(r => r.json())
+      .then(d => setCategorias(d.data || []))
+      .finally(() => setLoadingCats(false));
+  }, []);
 
   const { register, handleSubmit, control } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
       descricao: initial?.descricao || '',
       valor: initial?.valor,
-      classe: initial?.classe || 'renda_fixa',
+      categoriaInvestimentoId: initial?.categoriaInvestimentoId || '',
       data: initial?.data ? initial.data.slice(0, 10) : new Date().toISOString().slice(0, 10),
       quantidadeBTC: initial?.quantidadeBTC ?? null,
     },
   });
 
-  const classeWatched = useWatch({ control, name: 'classe' });
+  const catIdWatched = useWatch({ control, name: 'categoriaInvestimentoId' });
+  const catSelecionada = categorias.find(c => c.id === catIdWatched);
+  const isBTC = catSelecionada?.nome.toLowerCase().includes('bitcoin') || catSelecionada?.nome.toLowerCase().includes('btc');
 
   async function onSubmit(data: FormData) {
     setSubmitting(true);
@@ -46,7 +57,7 @@ export function InvestimentoForm({ initial, onSuccess }: Props) {
       const method = initial ? 'PATCH' : 'POST';
       const payload = {
         ...data,
-        quantidadeBTC: data.classe === 'cripto' && data.quantidadeBTC ? data.quantidadeBTC : null,
+        quantidadeBTC: isBTC && data.quantidadeBTC ? data.quantidadeBTC : null,
       };
       const res = await fetch(url, {
         method,
@@ -67,7 +78,7 @@ export function InvestimentoForm({ initial, onSuccess }: Props) {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div>
         <label className="block text-xs font-medium text-secondary mb-1.5">Descrição</label>
-        <input type="text" placeholder="Ex: Tesouro Selic" className="glass-input" {...register('descricao')} />
+        <input type="text" placeholder="Ex: Tesouro Selic, Aporte fundo XYZ" className="glass-input" {...register('descricao')} />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -82,20 +93,31 @@ export function InvestimentoForm({ initial, onSuccess }: Props) {
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-secondary mb-1.5">Classe de ativo</label>
-        <select className="glass-input" {...register('classe')}>
-          {CLASSES_INVESTIMENTO.map((c) => (
-            <option key={c.value} value={c.value} style={{ background: '#1a1040' }}>
-              {c.label}
-            </option>
-          ))}
-        </select>
+        <label className="block text-xs font-medium text-secondary mb-1.5">Categoria</label>
+        {loadingCats ? (
+          <div className="glass-input flex items-center gap-2 text-secondary text-sm">
+            <Loader2 className="w-4 h-4 animate-spin" /> Carregando…
+          </div>
+        ) : categorias.length === 0 ? (
+          <div className="glass-input text-sm text-secondary">
+            Crie categorias de investimento primeiro na aba "Categorias".
+          </div>
+        ) : (
+          <select className="glass-input" {...register('categoriaInvestimentoId')}>
+            <option value="">— Selecione —</option>
+            {categorias.map(c => (
+              <option key={c.id} value={c.id} style={{ background: '#0f172a' }}>
+                {c.icone} {c.nome}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
 
-      {classeWatched === 'cripto' && (
+      {isBTC && (
         <div>
           <label className="block text-xs font-medium text-secondary mb-1.5">
-            Quantidade de BTC <span className="text-tertiary">(opcional)</span>
+            Quantidade de BTC <span className="text-tertiary">(para rastreio do preço ao vivo)</span>
           </label>
           <input
             type="number"
@@ -104,16 +126,15 @@ export function InvestimentoForm({ initial, onSuccess }: Props) {
             className="glass-input tabular"
             {...register('quantidadeBTC')}
           />
-          <p className="text-[10px] text-tertiary mt-1">Informe a quantidade de Bitcoin para rastrear o preço ao vivo.</p>
         </div>
       )}
 
       <button
         type="submit"
-        disabled={submitting}
+        disabled={submitting || categorias.length === 0}
         className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-400 to-blue-600 text-white font-medium shadow-lg hover:shadow-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2"
       >
-        {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : initial ? 'Atualizar' : 'Salvar'}
+        {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : initial ? 'Atualizar' : 'Salvar aporte'}
       </button>
     </form>
   );
