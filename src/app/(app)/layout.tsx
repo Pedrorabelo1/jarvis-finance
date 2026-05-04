@@ -13,7 +13,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="min-h-screen">
       <Sidebar user={user} />
       <BottomNav />
-      <main className="md:pl-[64px] pb-24 md:pb-6">
+      <main className="md:pl-[220px] pb-24 md:pb-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4">
           <Header user={user} />
           {children}
