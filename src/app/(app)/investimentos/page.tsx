@@ -161,35 +161,78 @@ export default function InvestimentosPage() {
 
           {/* Bitcoin + Metas */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* ── Bitcoin card ── */}
             <div className="glass-card p-4 space-y-3">
+              {/* Header */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Bitcoin className="w-4 h-4 text-amber-400" />
-                  <span className="text-sm font-medium text-primary">Bitcoin (BTC)</span>
+                  <span className="text-sm font-semibold text-primary">Bitcoin (BTC)</span>
                 </div>
                 {btcPrice > 0 && (
-                  <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400">
+                  <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-medium">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />AO VIVO
                   </span>
                 )}
               </div>
-              {btcPrice > 0 && (
-                <div className="text-xs text-secondary">
-                  Preço: <span className="text-primary font-medium">{formatBRL(btcPrice)}</span>
-                  <span className="ml-2 text-tertiary">· {btcAtualizado}</span>
-                </div>
-              )}
+
               {totalBTC > 0 ? (
-                <div className="space-y-1.5">
-                  <div className="flex justify-between text-xs"><span className="text-secondary">Quantidade</span><span className="text-primary tabular font-medium">{totalBTC.toFixed(8)} BTC</span></div>
-                  <div className="flex justify-between text-sm"><span className="text-secondary">Valor atual</span><span className="text-blue-400 font-bold tabular"><HiddenValue value={btcAtual} /></span></div>
-                  <div className="flex justify-between text-xs"><span className="text-secondary">Aportado</span><span className="text-secondary tabular"><HiddenValue value={btcAportado} /></span></div>
-                  <div className="h-px bg-white/10" />
-                  <div className="flex justify-between text-sm font-semibold">
-                    <span className="text-secondary">P&L</span>
-                    <span className={cn('tabular', btcPnL >= 0 ? 'text-emerald-400' : 'text-rose-400')}>{btcPnL >= 0 ? '+' : ''}<HiddenValue value={btcPnL} /></span>
+                <>
+                  {/* Preço atual */}
+                  <div>
+                    <div className="text-[10px] text-secondary uppercase tracking-wide mb-0.5">Preço do Bitcoin</div>
+                    <div className="text-2xl font-bold text-primary tabular">
+                      {btcPrice > 0 ? formatBRL(btcPrice) : '—'}
+                    </div>
+                    {btcAtualizado && (
+                      <div className="text-[10px] text-tertiary mt-0.5">{btcAtualizado}</div>
+                    )}
                   </div>
-                </div>
+
+                  <div className="h-px bg-white/10" />
+
+                  {/* Carteira */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-secondary">Quantidade</span>
+                      <span className="text-sm font-semibold text-primary tabular">{totalBTC.toFixed(8)} BTC</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-secondary">Valor atual</span>
+                      <span className="text-sm font-bold text-blue-400 tabular">
+                        <HiddenValue value={btcAtual > 0 ? btcAtual : btcAportado} />
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-secondary">Total investido</span>
+                      <span className="text-xs text-secondary tabular"><HiddenValue value={btcAportado} /></span>
+                    </div>
+                    {totalBTC > 0 && btcAportado > 0 && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-secondary">Preço médio</span>
+                        <span className="text-xs text-secondary tabular">{formatBRL(btcAportado / totalBTC)}/BTC</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="h-px bg-white/10" />
+
+                  {/* P&L destaque */}
+                  <div className={cn(
+                    'flex items-center justify-between px-3 py-2.5 rounded-xl',
+                    btcPnL >= 0 ? 'bg-emerald-500/10' : 'bg-rose-500/10'
+                  )}>
+                    <span className="text-xs font-medium text-secondary">P&L</span>
+                    <span className={cn('text-base font-bold tabular', btcPnL >= 0 ? 'text-emerald-400' : 'text-rose-400')}>
+                      {btcPnL >= 0 ? '+' : ''}<HiddenValue value={btcPnL} />
+                      {btcAportado > 0 && (
+                        <span className="text-[11px] ml-1.5 opacity-70">
+                          ({((btcPnL / btcAportado) * 100).toFixed(2)}%)
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                </>
               ) : (
                 <div className="text-xs text-secondary py-2 space-y-1">
                   <p>Nenhum aporte em Bitcoin registrado.</p>
