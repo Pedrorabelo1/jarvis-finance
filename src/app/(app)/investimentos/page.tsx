@@ -375,7 +375,7 @@ function MetasCard({ meta, aporteMesAtual, patrimonioTotal, onSaved }: {
 // ─── Rendimentos Tab ──────────────────────────────────────────────────────────
 
 function RendimentosTab({ categorias, rendimentos, onRefresh }: {
-  categorias: CategoriaInvestimento[]; rendimentos: RendimentoMensal[]; onRefresh: () => void;
+  categorias: CategoriaInvestimento[]; rendimentos: RendimentoMensal[]; onRefresh: () => Promise<void>;
 }) {
   const hoje = new Date();
   const [catFiltro, setCatFiltro] = useState('all');
@@ -404,11 +404,23 @@ function RendimentosTab({ categorias, rendimentos, onRefresh }: {
         body: JSON.stringify({ categoriaInvestimentoId: form.categoriaInvestimentoId, ano: form.ano, mes: form.mes,
           valorRendimento: form.valorRendimento ? parseFloat(form.valorRendimento) : null,
           percentual: form.percentual ? parseFloat(form.percentual) : null, observacao: form.observacao || null }) });
-      if (!res.ok) throw new Error();
-      toast.success('Rendimento salvo!'); setForm(f => ({ ...f, valorRendimento: '', percentual: '', observacao: '' })); onRefresh();
-    } catch { toast.error('Erro ao salvar'); } finally { setSaving(false); }
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Erro ${res.status}`);
+      }
+      toast.success('Rendimento salvo!');
+      setForm(f => ({ ...f, valorRendimento: '', percentual: '', observacao: '' }));
+      await onRefresh();
+    } catch (e: any) { toast.error(e.message || 'Erro ao salvar'); } finally { setSaving(false); }
   }
-  async function deletar(id: string) { setDeleting(id); await fetch(`/api/rendimentos-mensais/${id}`, { method: 'DELETE' }); toast.success('Removido'); onRefresh(); setDeleting(null); }
+  async function deletar(id: string) {
+    setDeleting(id);
+    const res = await fetch(`/api/rendimentos-mensais/${id}`, { method: 'DELETE' });
+    if (!res.ok) { toast.error('Erro ao remover'); setDeleting(null); return; }
+    toast.success('Removido');
+    await onRefresh();
+    setDeleting(null);
+  }
   return (
     <div className="space-y-4">
       <div className="glass-card p-4 space-y-3">
@@ -486,25 +498,47 @@ function RendimentosTab({ categorias, rendimentos, onRefresh }: {
 const ICONES_OPT = ['📈','💰','🏦','🏠','🌎','₿','📊','💎','🔑','🏛️','⚡','🌱','🎯','🚀','💼'];
 const CORES_OPT  = ['#3b82f6','#34d399','#f59e0b','#a5b4fc','#22d3ee','#fb7185','#f97316','#8b5cf6','#06b6d4','#10b981'];
 
-function CategoriasTab({ categorias, onRefresh }: { categorias: CategoriaInvestimento[]; onRefresh: () => void }) {
+function CategoriasTab({ categorias, onRefresh }: { categorias: CategoriaInvestimento[]; onRefresh: () => Promise<void> }) {
   const [showForm, setShowForm] = useState(false);
   const [editando, setEditando] = useState<CategoriaInvestimento | null>(null);
   const [form, setForm] = useState({ nome: '', cor: '#3b82f6', icone: '📈' });
   const [saving, setSaving] = useState(false);
+
   function abrirNova() { setForm({ nome: '', cor: '#3b82f6', icone: '📈' }); setEditando(null); setShowForm(true); }
   function abrirEditar(cat: CategoriaInvestimento) { setForm({ nome: cat.nome, cor: cat.cor, icone: cat.icone }); setEditando(cat); setShowForm(true); }
+
   async function salvar() {
     if (!form.nome.trim()) { toast.error('Nome obrigatório'); return; }
     setSaving(true);
     try {
-      if (editando) { await fetch(`/api/categorias-investimento/${editando.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) }); toast.success('Atualizada'); }
-      else          { await fetch('/api/categorias-investimento',                 { method: 'POST',  headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) }); toast.success('Criada'); }
-      setShowForm(false); onRefresh();
-    } catch { toast.error('Erro'); } finally { setSaving(false); }
+      const url    = editando ? `/api/categorias-investimento/${editando.id}` : '/api/categorias-investimento';
+      const method = editando ? 'PATCH' : 'POST';
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Erro ${res.status}`);
+      }
+      toast.success(editando ? 'Categoria atualizada!' : 'Categoria criada!');
+      setShowForm(false);
+      setEditando(null);
+      await onRefresh();
+    } catch (e: any) {
+      toast.error(e.message || 'Erro ao salvar');
+    } finally {
+      setSaving(false);
+    }
   }
+
   async function deletar(id: string) {
     if (!confirm('Excluir categoria?')) return;
-    await fetch(`/api/categorias-investimento/${id}`, { method: 'DELETE' }); toast.success('Removida'); onRefresh();
+    const res = await fetch(`/api/categorias-investimento/${id}`, { method: 'DELETE' });
+    if (!res.ok) { toast.error('Erro ao excluir'); return; }
+    toast.success('Categoria removida');
+    await onRefresh();
   }
   return (
     <div className="space-y-4">
