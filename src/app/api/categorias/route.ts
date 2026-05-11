@@ -9,6 +9,7 @@ const createSchema = z.object({
   icone: z.string().min(1),
   cor: z.string().min(1),
   orcamento: z.number().nullable().optional(),
+  descricao: z.string().nullable().optional(),
 });
 
 export async function GET(request: NextRequest) {

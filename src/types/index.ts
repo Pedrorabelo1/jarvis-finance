@@ -11,6 +11,7 @@ export interface Categoria {
   icone: string;
   cor: string;
   orcamento: number | null;
+  descricao?: string | null;
   createdAt: string;
 }
 

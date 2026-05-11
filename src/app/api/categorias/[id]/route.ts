@@ -8,6 +8,7 @@ const updateSchema = z.object({
   icone: z.string().optional(),
   cor: z.string().optional(),
   orcamento: z.number().nullable().optional(),
+  descricao: z.string().nullable().optional(),
 });
 
 async function ensureOwned(userId: string, id: string) {

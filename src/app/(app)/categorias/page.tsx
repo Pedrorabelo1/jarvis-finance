@@ -72,10 +72,15 @@ export default function CategoriasPage() {
         </div>
         <div className="flex-1 min-w-0">
           <div className="text-sm font-medium text-primary truncate">{c.nome}</div>
-          {c.orcamento ? (
+          {c.descricao ? (
+            <div className="text-[11px] text-tertiary truncate mt-0.5">{c.descricao}</div>
+          ) : c.orcamento ? (
             <div className="text-xs text-secondary tabular">Orç. {formatBRL(c.orcamento)}</div>
           ) : (
             <div className="text-xs text-tertiary">Sem orçamento</div>
+          )}
+          {c.descricao && c.orcamento && (
+            <div className="text-[10px] text-secondary tabular">Orç. {formatBRL(c.orcamento)}</div>
           )}
         </div>
         <div className="flex gap-1">

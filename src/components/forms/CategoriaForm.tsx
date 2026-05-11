@@ -29,6 +29,7 @@ const schema = z.object({
   icone: z.string().min(1),
   cor: z.string().min(1),
   orcamento: z.coerce.number().nullable().optional(),
+  descricao: z.string().nullable().optional(),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -49,6 +50,7 @@ export function CategoriaForm({ initial, tipo, onSuccess }: Props) {
       icone: initial?.icone || ICONS[0],
       cor: initial?.cor || COLORS[0],
       orcamento: initial?.orcamento ?? undefined,
+      descricao: initial?.descricao ?? '',
     },
   });
 
@@ -61,6 +63,7 @@ export function CategoriaForm({ initial, tipo, onSuccess }: Props) {
       const payload: any = {
         ...data,
         orcamento: data.orcamento && data.orcamento > 0 ? data.orcamento : null,
+        descricao: data.descricao?.trim() || null,
       };
       if (!initial) payload.tipo = tipo;
       const url = initial ? `/api/categorias/${initial.id}` : '/api/categorias';
@@ -134,6 +137,18 @@ export function CategoriaForm({ initial, tipo, onSuccess }: Props) {
           <input type="number" step="0.01" className="glass-input tabular" {...register('orcamento')} />
         </div>
       )}
+
+      <div>
+        <label className="block text-xs font-medium text-secondary mb-1.5">
+          Descrição / exemplos de gastos <span className="text-tertiary font-normal">(opcional)</span>
+        </label>
+        <textarea
+          rows={3}
+          placeholder="Ex: Netflix, Spotify, assinatura revistas..."
+          className="glass-input resize-none text-sm leading-relaxed"
+          {...register('descricao')}
+        />
+      </div>
 
       <button
         type="submit"

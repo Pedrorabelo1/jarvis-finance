@@ -131,17 +131,29 @@ export function RadialChart({ data, size = 220, className = '' }: RadialChartPro
         </text>
       </svg>
 
-      {/* Legend */}
-      <div className="w-full mt-3 max-h-28 overflow-y-auto grid grid-cols-2 gap-x-3 gap-y-1 px-1">
-        {[...data].sort((a, b) => b.valor - a.valor).map((item) => (
-          <div key={item.nome} className="flex items-center gap-1.5 min-w-0">
-            <div
-              className="w-2.5 h-2.5 rounded-full shrink-0"
-              style={{ backgroundColor: item.cor }}
-            />
-            <span className="text-[11px] text-secondary truncate">{item.nome}</span>
-          </div>
-        ))}
+      {/* Legend with value + % */}
+      <div className="w-full mt-3 space-y-1.5 max-h-48 overflow-y-auto px-1">
+        {[...data].sort((a, b) => b.valor - a.valor).map((item) => {
+          const pct = total > 0 ? (item.valor / total) * 100 : 0;
+          return (
+            <div key={item.nome} className="flex items-center gap-2 min-w-0">
+              <div
+                className="w-2.5 h-2.5 rounded-full shrink-0"
+                style={{ backgroundColor: item.cor }}
+              />
+              <span className="text-[11px] text-secondary truncate flex-1">{item.nome}</span>
+              <span className="text-[11px] text-primary tabular font-medium shrink-0">
+                {item.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}
+              </span>
+              <span
+                className="text-[10px] tabular shrink-0 px-1.5 py-0.5 rounded-full font-medium"
+                style={{ background: item.cor + '25', color: item.cor }}
+              >
+                {pct.toFixed(1)}%
+              </span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
