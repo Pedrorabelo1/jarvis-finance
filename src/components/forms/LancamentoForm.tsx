@@ -5,20 +5,21 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
-import { Loader2, ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
+import { Loader2, ArrowDownCircle, ArrowUpCircle, Repeat } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Categoria, Lancamento, TipoLancamento } from '@/types';
 import { IconRenderer } from '@/components/ui/IconRenderer';
 
 const schema = z.object({
-  tipo: z.enum(['entrada', 'saida']),
-  valor: z.coerce.number().positive('Valor obrigatório'),
-  data: z.string().min(1),
-  descricao: z.string().min(1, 'Descrição obrigatória'),
-  categoriaId: z.string().min(1, 'Selecione uma categoria'),
-  tags: z.string().optional(),
-  hasParcelas: z.boolean().optional(),
-  parcelas: z.coerce.number().int().positive().optional(),
+  tipo:         z.enum(['entrada', 'saida']),
+  valor:        z.coerce.number().positive('Valor obrigatório'),
+  data:         z.string().min(1),
+  descricao:    z.string().min(1, 'Descrição obrigatória'),
+  categoriaId:  z.string().min(1, 'Selecione uma categoria'),
+  tags:         z.string().optional(),
+  recorrente:   z.boolean().optional(),
+  hasParcelas:  z.boolean().optional(),
+  parcelas:     z.coerce.number().int().positive().optional(),
   parcelaAtual: z.coerce.number().int().positive().optional(),
 });
 
@@ -42,14 +43,16 @@ export function LancamentoForm({ initial, onSuccess }: Props) {
       descricao: initial?.descricao || '',
       categoriaId: initial?.categoriaId || '',
       tags: initial?.tags || '',
+      recorrente: initial?.recorrente ?? false,
       hasParcelas: !!initial?.parcelas,
       parcelas: initial?.parcelas || undefined,
       parcelaAtual: initial?.parcelaAtual || undefined,
     },
   });
 
-  const tipo = watch('tipo') as TipoLancamento;
+  const tipo        = watch('tipo') as TipoLancamento;
   const hasParcelas = watch('hasParcelas');
+  const recorrente  = watch('recorrente');
 
   useEffect(() => {
     fetch(`/api/categorias?tipo=${tipo}`)
@@ -61,13 +64,14 @@ export function LancamentoForm({ initial, onSuccess }: Props) {
     setSubmitting(true);
     try {
       const payload = {
-        descricao: data.descricao,
-        valor: data.valor,
-        tipo: data.tipo,
-        data: data.data,
-        categoriaId: data.categoriaId,
-        tags: data.tags || null,
-        parcelas: data.hasParcelas ? data.parcelas : null,
+        descricao:    data.descricao,
+        valor:        data.valor,
+        tipo:         data.tipo,
+        data:         data.data,
+        categoriaId:  data.categoriaId,
+        tags:         data.tags || null,
+        recorrente:   !!data.recorrente,
+        parcelas:     data.hasParcelas ? data.parcelas : null,
         parcelaAtual: data.hasParcelas ? data.parcelaAtual : null,
       };
       const url = initial ? `/api/lancamentos/${initial.id}` : '/api/lancamentos';
@@ -187,6 +191,37 @@ export function LancamentoForm({ initial, onSuccess }: Props) {
         <label className="block text-xs font-medium text-secondary mb-1.5">Tags (opcional)</label>
         <input type="text" placeholder="trabalho, viagem" className="glass-input" {...register('tags')} />
       </div>
+
+      {/* Recorrente toggle */}
+      <button
+        type="button"
+        onClick={() => setValue('recorrente', !recorrente)}
+        className={cn(
+          'w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all text-sm font-medium',
+          recorrente
+            ? 'border-blue-500/50 bg-blue-500/10 text-blue-400'
+            : 'border-white/10 bg-white/5 text-secondary hover:border-white/20'
+        )}
+      >
+        <div className="flex items-center gap-2">
+          <Repeat className="w-4 h-4" />
+          <span>Lançamento recorrente</span>
+        </div>
+        <div className={cn(
+          'w-9 h-5 rounded-full transition-all relative',
+          recorrente ? 'bg-blue-500' : 'bg-white/20'
+        )}>
+          <div className={cn(
+            'absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all',
+            recorrente ? 'left-4' : 'left-0.5'
+          )} />
+        </div>
+      </button>
+      {recorrente && (
+        <p className="text-[11px] text-blue-400/70 -mt-2 px-1">
+          Este valor será incluído automaticamente em todos os meses futuros.
+        </p>
+      )}
 
       <div className="flex items-center gap-2">
         <input

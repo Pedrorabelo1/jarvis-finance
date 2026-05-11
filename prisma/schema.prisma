@@ -57,6 +57,7 @@ model Lancamento {
   tags         String?
   parcelas     Int?
   parcelaAtual Int?
+  recorrente   Boolean  @default(false)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

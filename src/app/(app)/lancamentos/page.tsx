@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, Edit2, Trash2, Search, ArrowUpDown } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, ArrowUpDown, Repeat } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import { useFinanceStore } from '@/store/useFinanceStore';
@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/Badge';
 import { IconRenderer } from '@/components/ui/IconRenderer';
 import { HiddenValue } from '@/components/ui/HiddenValue';
 import { Lancamento, Categoria } from '@/types';
-import { formatDate } from '@/lib/formatters';
+import { formatDate, formatBRL } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 
 const PAGE_SIZE = 20;
@@ -63,6 +63,21 @@ export default function LancamentosPage() {
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE) || 1;
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  // Fixed (recurring) totals — all time, not month-filtered
+  const [fixoSaidas, setFixoSaidas] = useState(0);
+  const [fixoEntradas, setFixoEntradas] = useState(0);
+
+  useEffect(() => {
+    fetch('/api/lancamentos?recorrente=true&limit=500')
+      .then(r => r.json())
+      .then(d => {
+        const todos: Lancamento[] = d.data || [];
+        setFixoSaidas(todos.filter(l => l.tipo === 'saida').reduce((s, l) => s + l.valor, 0));
+        setFixoEntradas(todos.filter(l => l.tipo === 'entrada').reduce((s, l) => s + l.valor, 0));
+      })
+      .catch(() => {});
+  }, []);
 
   async function handleDelete(id: string) {
     if (!confirm('Excluir lançamento?')) return;
@@ -133,6 +148,23 @@ export default function LancamentosPage() {
         </button>
       </div>
 
+      {/* Totais fixos recorrentes */}
+      {(fixoSaidas > 0 || fixoEntradas > 0) && (
+        <div className="flex flex-wrap gap-2 px-0.5">
+          <div className="flex items-center gap-1.5 text-[11px] text-secondary bg-white/5 border border-white/10 rounded-full px-3 py-1.5">
+            <Repeat className="w-3 h-3 text-blue-400" />
+            <span className="text-tertiary">Recorrentes/mês:</span>
+            {fixoSaidas > 0 && (
+              <span className="text-rose-400 font-medium tabular">-{formatBRL(fixoSaidas)} saídas</span>
+            )}
+            {fixoSaidas > 0 && fixoEntradas > 0 && <span className="text-tertiary">·</span>}
+            {fixoEntradas > 0 && (
+              <span className="text-emerald-400 font-medium tabular">+{formatBRL(fixoEntradas)} entradas</span>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Lista mobile / Tabela desktop */}
       <div className="glass-card !p-0 overflow-hidden">
         {/* Mobile: card list */}
@@ -163,10 +195,16 @@ export default function LancamentosPage() {
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm text-primary font-medium truncate">{l.descricao}</div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm text-primary font-medium truncate">{l.descricao}</span>
+                      {l.recorrente && (
+                        <Repeat className="w-3 h-3 text-blue-400 shrink-0" />
+                      )}
+                    </div>
                     <div className="text-[10px] text-tertiary">
                       {formatDate(l.data)}
                       {l.categoria && <span> · {l.categoria.nome}</span>}
+                      {(l as any)._projetado && <span className="text-blue-400/70"> · projetado</span>}
                     </div>
                   </div>
                   <div className="text-right shrink-0">
@@ -224,7 +262,17 @@ export default function LancamentosPage() {
                   <motion.tr key={l.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                     <td className="px-4 py-3 text-secondary tabular text-xs">{formatDate(l.data)}</td>
                     <td className="px-4 py-3 text-primary">
-                      <div className="font-medium truncate max-w-[200px]">{l.descricao}</div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-medium truncate max-w-[200px]">{l.descricao}</span>
+                        {l.recorrente && (
+                          <span className="flex items-center gap-1 text-[10px] text-blue-400 bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 rounded-full shrink-0">
+                            <Repeat className="w-2.5 h-2.5" />recorrente
+                          </span>
+                        )}
+                        {(l as any)._projetado && (
+                          <span className="text-[10px] text-blue-400/60 shrink-0">↩</span>
+                        )}
+                      </div>
                       {l.parcelas && <div className="text-xs text-tertiary">{l.parcelaAtual}/{l.parcelas}</div>}
                     </td>
                     <td className="px-4 py-3">

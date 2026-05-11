@@ -19,6 +19,7 @@ export interface Lancamento {
   id: string;
   descricao: string;
   valor: number;
+  recorrente?: boolean;
   tipo: TipoLancamento;
   data: string;
   categoriaId: string;

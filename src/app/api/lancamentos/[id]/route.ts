@@ -4,14 +4,15 @@ import { prisma } from '@/lib/prisma';
 import { withUser } from '@/lib/api-helpers';
 
 const updateSchema = z.object({
-  descricao: z.string().min(1).optional(),
-  valor: z.number().positive().optional(),
-  tipo: z.enum(['entrada', 'saida']).optional(),
-  data: z.string().or(z.date()).optional(),
+  descricao:   z.string().min(1).optional(),
+  valor:       z.number().positive().optional(),
+  tipo:        z.enum(['entrada', 'saida']).optional(),
+  data:        z.string().or(z.date()).optional(),
   categoriaId: z.string().optional(),
-  tags: z.string().nullable().optional(),
-  parcelas: z.number().int().positive().nullable().optional(),
-  parcelaAtual: z.number().int().positive().nullable().optional(),
+  tags:        z.string().nullable().optional(),
+  parcelas:    z.number().int().positive().nullable().optional(),
+  parcelaAtual:z.number().int().positive().nullable().optional(),
+  recorrente:  z.boolean().optional(),
 });
 
 async function ensureOwned(userId: string, id: string) {
