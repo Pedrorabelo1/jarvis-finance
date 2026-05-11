@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { useForm, useWatch, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
@@ -9,7 +9,6 @@ import { Loader2, Bitcoin, Calculator } from 'lucide-react';
 import { Investimento, CategoriaInvestimento } from '@/types';
 import { formatBRL } from '@/lib/formatters';
 
-// ── Formatters ────────────────────────────────────────────────────────────────
 function fmtUSD(v: number) {
   return new Intl.NumberFormat('en-US', {
     style: 'currency', currency: 'USD',
@@ -39,45 +38,23 @@ export function InvestimentoForm({ initial, onSuccess }: Props) {
 
   // Live rates
   const [btcPriceUSD, setBtcPriceUSD] = useState(0);
-  const [btcPriceBRL, setBtcPriceBRL] = useState(0);
   const [usdBrlRate,  setUsdBrlRate]  = useState(0);
 
-  // BTC calculator state (USD-based)
-  const [btcQtd,       setBtcQtd]       = useState(initial?.quantidadeBTC?.toString() ?? '');
-  const [btcPrecoUSD,  setBtcPrecoUSD]  = useState('');   // preço por BTC em USD
-  const [totalUSD,     setTotalUSD]     = useState('');   // total em USD
+  // USD display helpers (not submitted — only `valor` in BRL is submitted)
+  const [btcPrecoUSD, setBtcPrecoUSD] = useState('');
+  const [totalUSD,    setTotalUSD]    = useState('');
+  const [valorUSD,    setValorUSD]    = useState('');
 
-  // Non-BTC: USD input
-  const [valorUSD,     setValorUSD]     = useState('');
-
-  // Derived BRL note
   const brlOf = (usd: number) => usdBrlRate > 0 ? usd * usdBrlRate : 0;
 
-  // Load categories + exchange rates on mount
-  useEffect(() => {
-    Promise.all([
-      fetch('/api/categorias-investimento').then(r => r.json()),
-      fetch('/api/btc-price').then(r => r.json()).catch(() => ({})),
-    ]).then(([catRes, btcRes]) => {
-      setCategorias(catRes.data || []);
-      if (btcRes.priceUSD) {
-        setBtcPriceUSD(btcRes.priceUSD);
-        setBtcPriceBRL(btcRes.priceBRL ?? 0);
-        setUsdBrlRate(btcRes.usdBrlRate ?? 0);
-        // Pre-fill BTC price with current live price
-        setBtcPrecoUSD(btcRes.priceUSD.toFixed(2));
-      }
-    }).finally(() => setLoadingCats(false));
-  }, []);
-
-  const { register, handleSubmit, control, setValue } = useForm<FormData>({
+  const { register, handleSubmit, control, setValue, watch } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
       descricao:               initial?.descricao || '',
-      valor:                   initial?.valor,
+      valor:                   initial?.valor ?? undefined,
       categoriaInvestimentoId: initial?.categoriaInvestimentoId || '',
       data:    initial?.data ? initial.data.slice(0, 10) : new Date().toISOString().slice(0, 10),
-      quantidadeBTC: initial?.quantidadeBTC ?? null,
+      quantidadeBTC:           initial?.quantidadeBTC ?? null,
     },
   });
 
@@ -88,60 +65,87 @@ export function InvestimentoForm({ initial, onSuccess }: Props) {
     catSelecionada?.nome.toLowerCase().includes('btc')
   );
 
-  // ── BTC calculator (all in USD, stores BRL in `valor`) ───────────────────
+  // Watch quantidadeBTC to keep displays in sync
+  const qtdWatched = watch('quantidadeBTC');
 
-  function syncBRL(qtd: number, precoUsd: number) {
-    const totalU = qtd * precoUsd;
-    const totalB = brlOf(totalU);
-    setTotalUSD(totalU.toFixed(2));
-    setValue('valor', totalB);
-    return { totalU, totalB };
-  }
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/categorias-investimento').then(r => r.json()),
+      fetch('/api/btc-price').then(r => r.json()).catch(() => ({})),
+    ]).then(([catRes, btcRes]) => {
+      setCategorias(catRes.data || []);
 
-  function onQtdChange(v: string) {
-    setBtcQtd(v);
-    setValue('quantidadeBTC', v ? parseFloat(v) : null);
-    const qtd = parseFloat(v);
-    const prc = parseFloat(btcPrecoUSD);
-    if (!isNaN(qtd) && !isNaN(prc) && qtd > 0 && prc > 0) syncBRL(qtd, prc);
+      const priceUSD  = btcRes.priceUSD  ?? 0;
+      const rate      = btcRes.usdBrlRate ?? 0;
+      setBtcPriceUSD(priceUSD);
+      setUsdBrlRate(rate);
+
+      if (rate > 0) {
+        if (initial?.quantidadeBTC && initial.valor) {
+          // ── EDITING: derive original USD price from stored BRL ──
+          const origTotalUSD  = initial.valor / rate;
+          const origPrecoUSD  = initial.quantidadeBTC > 0
+            ? origTotalUSD / initial.quantidadeBTC
+            : priceUSD;
+          setBtcPrecoUSD(origPrecoUSD.toFixed(2));
+          setTotalUSD(origTotalUSD.toFixed(2));
+          // Non-BTC editing
+          setValorUSD((initial.valor / rate).toFixed(2));
+        } else {
+          // ── NEW: pre-fill with live BTC price ──
+          if (priceUSD > 0) setBtcPrecoUSD(priceUSD.toFixed(2));
+        }
+      }
+    }).finally(() => setLoadingCats(false));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── BTC calculator ────────────────────────────────────────────────────────
+
+  function recalc(qtd: number, precoUsd: number) {
+    if (qtd > 0 && precoUsd > 0) {
+      const tu = qtd * precoUsd;
+      const tb = brlOf(tu);
+      setTotalUSD(tu.toFixed(2));
+      setValue('valor', tb, { shouldValidate: true });
+    }
   }
 
   function onPrecoUSDChange(v: string) {
     setBtcPrecoUSD(v);
-    const qtd = parseFloat(btcQtd);
-    const prc = parseFloat(v);
-    if (!isNaN(qtd) && !isNaN(prc) && qtd > 0 && prc > 0) syncBRL(qtd, prc);
+    recalc(parseFloat(qtdWatched?.toString() ?? '0') || 0, parseFloat(v) || 0);
   }
 
   function onTotalUSDChange(v: string) {
     setTotalUSD(v);
-    const totalU = parseFloat(v);
-    const totalB = brlOf(totalU);
-    setValue('valor', totalB || 0);
-    const qtd = parseFloat(btcQtd);
-    if (!isNaN(qtd) && qtd > 0 && !isNaN(totalU)) {
-      setBtcPrecoUSD((totalU / qtd).toFixed(2));
-    }
+    const tu  = parseFloat(v) || 0;
+    const qtd = parseFloat(qtdWatched?.toString() ?? '0') || 0;
+    setValue('valor', brlOf(tu), { shouldValidate: true });
+    if (qtd > 0 && tu > 0) setBtcPrecoUSD((tu / qtd).toFixed(2));
   }
 
-  // ── Non-BTC: USD → BRL ────────────────────────────────────────────────────
+  // ── Non-BTC USD ───────────────────────────────────────────────────────────
 
   function onValorUSDChange(v: string) {
     setValorUSD(v);
-    const usd = parseFloat(v);
-    if (!isNaN(usd) && usd > 0) setValue('valor', brlOf(usd));
-    else setValue('valor', 0);
+    const usd = parseFloat(v) || 0;
+    setValue('valor', brlOf(usd), { shouldValidate: true });
   }
+
+  // ── Submit ────────────────────────────────────────────────────────────────
 
   async function onSubmit(data: FormData) {
     setSubmitting(true);
     try {
       const url    = initial ? `/api/investimentos/${initial.id}` : '/api/investimentos';
       const method = initial ? 'PATCH' : 'POST';
-      const payload = {
-        ...data,
-        quantidadeBTC: isBTC && data.quantidadeBTC ? data.quantidadeBTC : null,
-      };
+
+      // quantidadeBTC: only send if it's a BTC category AND has a value
+      const quantidadeBTC = isBTC && data.quantidadeBTC && data.quantidadeBTC > 0
+        ? data.quantidadeBTC
+        : null;
+
+      const payload = { ...data, quantidadeBTC };
+
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
@@ -160,18 +164,17 @@ export function InvestimentoForm({ initial, onSuccess }: Props) {
     }
   }
 
-  // ── Helpers for display ───────────────────────────────────────────────────
-  const qtdN      = parseFloat(btcQtd) || 0;
+  // ── Display helpers ───────────────────────────────────────────────────────
+  const qtdN      = parseFloat(qtdWatched?.toString() ?? '0') || 0;
   const precoUSDN = parseFloat(btcPrecoUSD) || 0;
   const totalUSDN = parseFloat(totalUSD) || 0;
-  const totalBRLN = brlOf(totalUSDN);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 
-      {/* ── Cotação ao vivo ── */}
+      {/* Cotação ao vivo */}
       {usdBrlRate > 0 && (
-        <div className="flex items-center gap-2 text-[10px] text-secondary px-1">
+        <div className="flex items-center gap-2 text-[10px] text-secondary px-1 flex-wrap">
           <span className="text-tertiary">Cotação ao vivo:</span>
           <span className="tabular font-medium text-primary">1 USD = {formatBRL(usdBrlRate)}</span>
           {btcPriceUSD > 0 && (
@@ -183,7 +186,7 @@ export function InvestimentoForm({ initial, onSuccess }: Props) {
         </div>
       )}
 
-      {/* ── Categoria ── */}
+      {/* Categoria */}
       <div>
         <label className="block text-xs font-medium text-secondary mb-1.5">Categoria</label>
         {loadingCats ? (
@@ -219,21 +222,34 @@ export function InvestimentoForm({ initial, onSuccess }: Props) {
             )}
           </div>
 
-          {/* Qtd + Preço em USD */}
           <div className="grid grid-cols-2 gap-3">
+            {/* Quantidade — registrada via Controller para garantir que vai no submit */}
             <div>
               <label className="block text-[10px] font-medium text-secondary mb-1.5 uppercase tracking-wide">
                 Quantidade BTC
               </label>
-              <input
-                type="number"
-                step="0.00000001"
-                value={btcQtd}
-                onChange={e => onQtdChange(e.target.value)}
-                placeholder="0.07294739"
-                className="glass-input tabular"
+              <Controller
+                control={control}
+                name="quantidadeBTC"
+                render={({ field }) => (
+                  <input
+                    type="number"
+                    step="0.00000001"
+                    placeholder="0.07294739"
+                    className="glass-input tabular"
+                    value={field.value ?? ''}
+                    onChange={e => {
+                      const v = e.target.value;
+                      const qtd = parseFloat(v) || 0;
+                      field.onChange(qtd || null);
+                      recalc(qtd, precoUSDN);
+                    }}
+                  />
+                )}
               />
             </div>
+
+            {/* Preço em USD */}
             <div>
               <label className="block text-[10px] font-medium text-secondary mb-1.5 uppercase tracking-wide">
                 Preço BTC (USD)
@@ -243,7 +259,7 @@ export function InvestimentoForm({ initial, onSuccess }: Props) {
                 step="0.01"
                 value={btcPrecoUSD}
                 onChange={e => onPrecoUSDChange(e.target.value)}
-                placeholder="Ex: 70000"
+                placeholder="Ex: 100114"
                 className="glass-input tabular"
               />
               {precoUSDN > 0 && usdBrlRate > 0 && (
@@ -252,7 +268,7 @@ export function InvestimentoForm({ initial, onSuccess }: Props) {
             </div>
           </div>
 
-          {/* Total em USD */}
+          {/* Total USD */}
           <div>
             <label className="block text-[10px] font-medium text-secondary mb-1.5 uppercase tracking-wide flex items-center gap-1">
               <Calculator className="w-3 h-3" /> Total pago (USD)
@@ -266,8 +282,11 @@ export function InvestimentoForm({ initial, onSuccess }: Props) {
               className="glass-input tabular"
             />
             {totalUSDN > 0 && usdBrlRate > 0 && (
-              <p className="text-[10px] text-tertiary mt-1 tabular">≈ {formatBRL(totalBRLN)} · salvo em BRL pela cotação atual</p>
+              <p className="text-[10px] text-tertiary mt-1 tabular">
+                ≈ {formatBRL(brlOf(totalUSDN))} · salvo em BRL pela cotação atual
+              </p>
             )}
+            {/* valor em BRL é o campo real enviado */}
             <input type="hidden" {...register('valor')} />
           </div>
 
@@ -277,13 +296,13 @@ export function InvestimentoForm({ initial, onSuccess }: Props) {
               <span className="text-secondary">Preço médio desta compra</span>
               <div className="text-right">
                 <div className="text-amber-400 font-semibold tabular">{fmtUSD(totalUSDN / qtdN)}/BTC</div>
-                <div className="text-[10px] text-tertiary tabular">≈ {formatBRL(totalBRLN / qtdN)}/BTC</div>
+                <div className="text-[10px] text-tertiary tabular">≈ {formatBRL(brlOf(totalUSDN) / qtdN)}/BTC</div>
               </div>
             </div>
           )}
         </div>
       ) : (
-        /* ── Normal mode (USD input) ── */
+        /* ── Normal mode (USD) ── */
         <div>
           <label className="block text-xs font-medium text-secondary mb-1.5">
             Valor aportado (USD)
@@ -305,7 +324,7 @@ export function InvestimentoForm({ initial, onSuccess }: Props) {
         </div>
       )}
 
-      {/* ── Descrição ── */}
+      {/* Descrição */}
       <div>
         <label className="block text-xs font-medium text-secondary mb-1.5">Descrição</label>
         <input
@@ -316,7 +335,7 @@ export function InvestimentoForm({ initial, onSuccess }: Props) {
         />
       </div>
 
-      {/* ── Data ── */}
+      {/* Data */}
       <div>
         <label className="block text-xs font-medium text-secondary mb-1.5">Data da compra</label>
         <input type="date" className="glass-input" {...register('data')} />
