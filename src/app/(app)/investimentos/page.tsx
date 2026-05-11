@@ -22,6 +22,12 @@ import { cn } from '@/lib/utils';
 const MESES_FULL  = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const MESES_SHORT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
+// ── Formatters ────────────────────────────────────────────────────────────────
+function fmtUSD(v: number) {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
+}
+function fmtBRL(v: number) { return formatBRL(v); }
+
 type Aba = 'visao' | 'rendimentos' | 'categorias' | 'aportes';
 
 export default function InvestimentosPage() {
@@ -29,12 +35,20 @@ export default function InvestimentosPage() {
   const [investimentos, setInvestimentos] = useState<Investimento[]>([]);
   const [categorias, setCategorias] = useState<CategoriaInvestimento[]>([]);
   const [rendimentos, setRendimentos] = useState<RendimentoMensal[]>([]);
-  const [btcPrice, setBtcPrice] = useState(0);
+  const [btcPriceBRL, setBtcPriceBRL] = useState(0);
+  const [btcPriceUSD, setBtcPriceUSD] = useState(0);
+  const [usdBrlRate, setUsdBrlRate]   = useState(0);
   const [btcAtualizado, setBtcAtualizado] = useState('');
   const [meta, setMeta] = useState<{ aporteMensal?: number | null; patrimonioAlvo?: number | null } | null>(null);
   const [loading, setLoading] = useState(true);
   const [openForm, setOpenForm] = useState(false);
   const [editing, setEditing] = useState<Investimento | null>(null);
+
+  // converte BRL → USD usando cotação ao vivo
+  const toUSD = (brl: number) => usdBrlRate > 0 ? brl / usdBrlRate : 0;
+
+  // nota pequena em BRL
+  const brlNote = (brl: number) => fmtBRL(brl);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -42,14 +56,16 @@ export default function InvestimentosPage() {
       fetch('/api/investimentos').then(r => r.json()),
       fetch('/api/categorias-investimento').then(r => r.json()),
       fetch('/api/rendimentos-mensais').then(r => r.json()),
-      fetch('/api/btc-price').then(r => r.json()).catch(() => ({ price: 0 })),
+      fetch('/api/btc-price').then(r => r.json()).catch(() => ({})),
       fetch('/api/metas-investimento').then(r => r.json()).catch(() => ({ data: null })),
     ]);
     setInvestimentos(invRes.data || []);
     setCategorias(catRes.data || []);
     setRendimentos(rendRes.data || []);
-    if (btcRes.price) {
-      setBtcPrice(btcRes.price);
+    if (btcRes.priceBRL) {
+      setBtcPriceBRL(btcRes.priceBRL);
+      setBtcPriceUSD(btcRes.priceUSD ?? 0);
+      setUsdBrlRate(btcRes.usdBrlRate ?? 0);
       setBtcAtualizado(new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }));
     }
     setMeta(metaRes.data || null);
@@ -62,17 +78,18 @@ export default function InvestimentosPage() {
   const btcInvs         = useMemo(() => investimentos.filter(i => i.quantidadeBTC && i.quantidadeBTC > 0), [investimentos]);
   const totalBTC        = useMemo(() => btcInvs.reduce((s, i) => s + (i.quantidadeBTC ?? 0), 0), [btcInvs]);
   const btcAportado     = useMemo(() => btcInvs.reduce((s, i) => s + i.valor, 0), [btcInvs]);
-  const btcAtual        = totalBTC * btcPrice;
-  const btcPnL          = btcAtual - btcAportado;
+  const btcAtualBRL     = totalBTC * btcPriceBRL;
+  const btcAtualUSD     = totalBTC * btcPriceUSD;
+  const btcPnLBRL       = btcAtualBRL - btcAportado;
 
   const rendimentoAcumulado = useMemo(() =>
     rendimentos.reduce((s, r) => s + (r.valorRendimento ?? 0), 0), [rendimentos]);
 
-  const patrimonioTotal = useMemo(() => {
+  const patrimonioTotalBRL = useMemo(() => {
     const baseNaoBTC = totalAportado - btcAportado;
     const rendTotal  = rendimentos.reduce((s, r) => s + (r.valorRendimento ?? 0), 0);
-    return baseNaoBTC + rendTotal + (btcPrice > 0 && totalBTC > 0 ? btcAtual : btcAportado);
-  }, [totalAportado, btcAportado, rendimentos, btcAtual, btcPrice, totalBTC]);
+    return baseNaoBTC + rendTotal + (btcPriceBRL > 0 && totalBTC > 0 ? btcAtualBRL : btcAportado);
+  }, [totalAportado, btcAportado, rendimentos, btcAtualBRL, btcPriceBRL, totalBTC]);
 
   const mediaMensal = useMemo(() => {
     const comValor = rendimentos.filter(r => r.valorRendimento !== null && r.valorRendimento !== 0);
@@ -88,11 +105,11 @@ export default function InvestimentosPage() {
     const btcCat     = invs.filter(i => i.quantidadeBTC && i.quantidadeBTC > 0);
     const qtdBTCCat  = btcCat.reduce((s, i) => s + (i.quantidadeBTC ?? 0), 0);
     const btcAportCat = btcCat.reduce((s, i) => s + i.valor, 0);
-    const btcAtualCat = btcPrice > 0 && qtdBTCCat > 0 ? qtdBTCCat * btcPrice : btcAportCat;
+    const btcAtualCat = btcPriceBRL > 0 && qtdBTCCat > 0 ? qtdBTCCat * btcPriceBRL : btcAportCat;
     const patrimonioCat = (aportado - btcAportCat) + rendAcum + btcAtualCat;
     return { ...cat, aportado, rendimento: rendAcum, patrimonio: patrimonioCat };
   }).filter(c => c.aportado > 0 || rendimentos.some(r => r.categoriaInvestimentoId === c.id)),
-  [categorias, investimentos, rendimentos, btcPrice]);
+  [categorias, investimentos, rendimentos, btcPriceBRL]);
 
   const evolucaoChart = useMemo(() => {
     const map = new Map<string, number>();
@@ -140,20 +157,36 @@ export default function InvestimentosPage() {
       {/* ── VISÃO GERAL ─────────────────────────────────────────────────────── */}
       {aba === 'visao' && (
         <div className="space-y-4">
+
+          {/* Cotação do dólar */}
+          {usdBrlRate > 0 && (
+            <div className="flex items-center gap-2 px-1">
+              <span className="text-[10px] text-tertiary uppercase tracking-wide">Cotação USD/BRL</span>
+              <span className="text-[11px] font-semibold text-secondary tabular">{fmtBRL(usdBrlRate)}</span>
+              {btcAtualizado && <span className="text-[10px] text-tertiary">· {btcAtualizado}</span>}
+              <span className="flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-medium">
+                <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse inline-block" />AO VIVO
+              </span>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {([
-              { label: 'Patrimônio Total', value: patrimonioTotal,       color: 'text-blue-400',    icon: TrendingUp, prefix: ''                               },
-              { label: 'Valor Aportado',   value: totalAportado,         color: 'text-indigo-300',  icon: Wallet,     prefix: ''                               },
-              { label: 'Rendimento Acum.', value: rendimentoAcumulado,   color: rendimentoAcumulado >= 0 ? 'text-emerald-400' : 'text-rose-400', icon: BarChart3, prefix: rendimentoAcumulado > 0 ? '+' : '' },
-              { label: 'Média Mensal',     value: mediaMensal,           color: 'text-emerald-300', icon: Activity,   prefix: mediaMensal > 0 ? '+' : ''       },
-            ] as const).map(({ label, value, color, icon: Icon, prefix }) => (
+              { label: 'Patrimônio Total', valueBRL: patrimonioTotalBRL, color: 'text-blue-400',    icon: TrendingUp, prefix: '' },
+              { label: 'Valor Aportado',   valueBRL: totalAportado,      color: 'text-indigo-300',  icon: Wallet,     prefix: '' },
+              { label: 'Rendimento Acum.', valueBRL: rendimentoAcumulado, color: rendimentoAcumulado >= 0 ? 'text-emerald-400' : 'text-rose-400', icon: BarChart3, prefix: rendimentoAcumulado > 0 ? '+' : '' },
+              { label: 'Média Mensal',     valueBRL: mediaMensal,        color: 'text-emerald-300', icon: Activity,   prefix: mediaMensal > 0 ? '+' : '' },
+            ] as const).map(({ label, valueBRL, color, icon: Icon, prefix }) => (
               <div key={label} className="glass-card p-3 sm:p-4 flex flex-col gap-1">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] sm:text-xs text-secondary">{label}</span>
                   <Icon className="w-3.5 h-3.5 text-secondary" />
                 </div>
                 <div className={cn('text-base sm:text-xl font-bold tabular', color)}>
-                  {prefix}<HiddenValue value={value} />
+                  {prefix}<HiddenValue value={toUSD(valueBRL)} formatter={fmtUSD} />
+                </div>
+                <div className="text-[10px] text-tertiary tabular">
+                  ≈ {prefix}<HiddenValue value={valueBRL} />
                 </div>
               </div>
             ))}
@@ -163,13 +196,12 @@ export default function InvestimentosPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* ── Bitcoin card ── */}
             <div className="glass-card p-4 space-y-3">
-              {/* Header */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Bitcoin className="w-4 h-4 text-amber-400" />
                   <span className="text-sm font-semibold text-primary">Bitcoin (BTC)</span>
                 </div>
-                {btcPrice > 0 && (
+                {btcPriceUSD > 0 && (
                   <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-medium">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />AO VIVO
                   </span>
@@ -178,20 +210,20 @@ export default function InvestimentosPage() {
 
               {totalBTC > 0 ? (
                 <>
-                  {/* Preço atual */}
+                  {/* Preço em USD */}
                   <div>
                     <div className="text-[10px] text-secondary uppercase tracking-wide mb-0.5">Preço do Bitcoin</div>
                     <div className="text-2xl font-bold text-primary tabular">
-                      {btcPrice > 0 ? formatBRL(btcPrice) : '—'}
+                      {btcPriceUSD > 0 ? fmtUSD(btcPriceUSD) : '—'}
                     </div>
-                    {btcAtualizado && (
-                      <div className="text-[10px] text-tertiary mt-0.5">{btcAtualizado}</div>
+                    {btcPriceBRL > 0 && (
+                      <div className="text-[10px] text-tertiary tabular mt-0.5">≈ {fmtBRL(btcPriceBRL)}</div>
                     )}
                   </div>
 
                   <div className="h-px bg-white/10" />
 
-                  {/* Carteira */}
+                  {/* Carteira em USD */}
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
                       <span className="text-xs text-secondary">Quantidade</span>
@@ -199,38 +231,52 @@ export default function InvestimentosPage() {
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-xs text-secondary">Valor atual</span>
-                      <span className="text-sm font-bold text-blue-400 tabular">
-                        <HiddenValue value={btcAtual > 0 ? btcAtual : btcAportado} />
-                      </span>
+                      <div className="text-right">
+                        <div className="text-sm font-bold text-blue-400 tabular">
+                          <HiddenValue value={btcAtualUSD > 0 ? btcAtualUSD : toUSD(btcAportado)} formatter={fmtUSD} />
+                        </div>
+                        <div className="text-[10px] text-tertiary tabular">≈ <HiddenValue value={btcAtualBRL > 0 ? btcAtualBRL : btcAportado} /></div>
+                      </div>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-xs text-secondary">Total investido</span>
-                      <span className="text-xs text-secondary tabular"><HiddenValue value={btcAportado} /></span>
+                      <div className="text-right">
+                        <div className="text-xs text-secondary tabular"><HiddenValue value={toUSD(btcAportado)} formatter={fmtUSD} /></div>
+                        <div className="text-[10px] text-tertiary tabular">≈ <HiddenValue value={btcAportado} /></div>
+                      </div>
                     </div>
-                    {totalBTC > 0 && btcAportado > 0 && (
+                    {totalBTC > 0 && btcAportado > 0 && btcPriceUSD > 0 && (
                       <div className="flex justify-between items-center">
                         <span className="text-xs text-secondary">Preço médio</span>
-                        <span className="text-xs text-secondary tabular">{formatBRL(btcAportado / totalBTC)}/BTC</span>
+                        <div className="text-right">
+                          <div className="text-xs text-secondary tabular">{fmtUSD(toUSD(btcAportado) / totalBTC)}/BTC</div>
+                          <div className="text-[10px] text-tertiary tabular">≈ {fmtBRL(btcAportado / totalBTC)}/BTC</div>
+                        </div>
                       </div>
                     )}
                   </div>
 
                   <div className="h-px bg-white/10" />
 
-                  {/* P&L destaque */}
+                  {/* P&L em USD */}
                   <div className={cn(
                     'flex items-center justify-between px-3 py-2.5 rounded-xl',
-                    btcPnL >= 0 ? 'bg-emerald-500/10' : 'bg-rose-500/10'
+                    btcPnLBRL >= 0 ? 'bg-emerald-500/10' : 'bg-rose-500/10'
                   )}>
                     <span className="text-xs font-medium text-secondary">P&L</span>
-                    <span className={cn('text-base font-bold tabular', btcPnL >= 0 ? 'text-emerald-400' : 'text-rose-400')}>
-                      {btcPnL >= 0 ? '+' : ''}<HiddenValue value={btcPnL} />
-                      {btcAportado > 0 && (
-                        <span className="text-[11px] ml-1.5 opacity-70">
-                          ({((btcPnL / btcAportado) * 100).toFixed(2)}%)
-                        </span>
-                      )}
-                    </span>
+                    <div className="text-right">
+                      <div className={cn('text-base font-bold tabular', btcPnLBRL >= 0 ? 'text-emerald-400' : 'text-rose-400')}>
+                        {btcPnLBRL >= 0 ? '+' : ''}<HiddenValue value={toUSD(btcPnLBRL)} formatter={fmtUSD} />
+                        {btcAportado > 0 && (
+                          <span className="text-[11px] ml-1 opacity-70">
+                            ({((btcPnLBRL / btcAportado) * 100).toFixed(2)}%)
+                          </span>
+                        )}
+                      </div>
+                      <div className={cn('text-[10px] tabular', btcPnLBRL >= 0 ? 'text-emerald-400/60' : 'text-rose-400/60')}>
+                        ≈ {btcPnLBRL >= 0 ? '+' : ''}<HiddenValue value={btcPnLBRL} />
+                      </div>
+                    </div>
                   </div>
                 </>
               ) : (
@@ -240,7 +286,7 @@ export default function InvestimentosPage() {
                 </div>
               )}
             </div>
-            <MetasCard meta={meta} aporteMesAtual={aporteMesAtual} patrimonioTotal={patrimonioTotal} onSaved={load} />
+            <MetasCard meta={meta} aporteMesAtual={aporteMesAtual} patrimonioTotal={patrimonioTotalBRL} onSaved={load} />
           </div>
 
           {/* Por categoria */}
@@ -262,11 +308,29 @@ export default function InvestimentosPage() {
                           </span>
                         </div>
                       </div>
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-xs"><span className="text-secondary">Aportado</span><span className="text-secondary tabular"><HiddenValue value={cat.aportado} /></span></div>
-                        <div className="flex justify-between text-xs"><span className="text-secondary">Rendimento</span><span className={cn('tabular', cat.rendimento >= 0 ? 'text-emerald-400' : 'text-rose-400')}>{cat.rendimento >= 0 ? '+' : ''}<HiddenValue value={cat.rendimento} /></span></div>
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between items-end text-xs">
+                          <span className="text-secondary">Aportado</span>
+                          <div className="text-right">
+                            <div className="text-secondary tabular"><HiddenValue value={toUSD(cat.aportado)} formatter={fmtUSD} /></div>
+                            <div className="text-[10px] text-tertiary tabular">≈ <HiddenValue value={cat.aportado} /></div>
+                          </div>
+                        </div>
+                        <div className="flex justify-between items-end text-xs">
+                          <span className="text-secondary">Rendimento</span>
+                          <div className="text-right">
+                            <div className={cn('tabular', cat.rendimento >= 0 ? 'text-emerald-400' : 'text-rose-400')}>{cat.rendimento >= 0 ? '+' : ''}<HiddenValue value={toUSD(cat.rendimento)} formatter={fmtUSD} /></div>
+                            <div className="text-[10px] text-tertiary tabular">≈ {cat.rendimento >= 0 ? '+' : ''}<HiddenValue value={cat.rendimento} /></div>
+                          </div>
+                        </div>
                         <div className="h-px bg-white/10" />
-                        <div className="flex justify-between text-sm font-semibold"><span className="text-primary">Patrimônio</span><span className="text-blue-400 tabular"><HiddenValue value={cat.patrimonio} /></span></div>
+                        <div className="flex justify-between items-end text-sm font-semibold">
+                          <span className="text-primary">Patrimônio</span>
+                          <div className="text-right">
+                            <div className="text-blue-400 tabular"><HiddenValue value={toUSD(cat.patrimonio)} formatter={fmtUSD} /></div>
+                            <div className="text-[10px] text-tertiary tabular font-normal">≈ <HiddenValue value={cat.patrimonio} /></div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   );
