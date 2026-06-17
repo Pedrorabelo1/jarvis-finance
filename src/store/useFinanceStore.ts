@@ -42,7 +42,7 @@ export const useFinanceStore = create<FinanceState>((set) => ({
   hideValues: false,
   toggleHideValues: () => set((s) => ({ hideValues: !s.hideValues })),
 
-  theme: 'dark',
+  theme: 'light',
   setTheme: (theme) => set({ theme }),
   toggleTheme: () => set((s) => ({ theme: s.theme === 'dark' ? 'light' : 'dark' })),
 }));

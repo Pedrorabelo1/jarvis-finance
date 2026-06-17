@@ -8,21 +8,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const theme = useFinanceStore((s) => s.theme);
   const setTheme = useFinanceStore((s) => s.setTheme);
 
-  // Hydrate theme from localStorage on mount
+  // Always light — remove any stale dark class
   useEffect(() => {
-    const stored = localStorage.getItem('jarvis-theme') as 'light' | 'dark' | null;
-    if (stored) {
-      setTheme(stored);
-    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      setTheme('dark');
-    }
-  }, [setTheme]);
-
-  // Sync theme to <html> and persist
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', theme === 'dark');
-    localStorage.setItem('jarvis-theme', theme);
-  }, [theme]);
+    document.documentElement.classList.remove('dark');
+  }, []);
 
   return (
     <>
@@ -31,11 +20,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
         position="top-right"
         toastOptions={{
           style: {
-            background: 'rgba(15, 23, 42, 0.9)',
-            color: '#f1f5f9',
-            backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            borderRadius: '12px',
+            background: '#FFFFFF',
+            color: '#0F172A',
+            border: '1px solid #E2E8F0',
+            borderRadius: '10px',
+            fontSize: '14px',
+            boxShadow: '0 4px 12px rgba(15,23,42,0.10)',
           },
         }}
       />

@@ -195,10 +195,10 @@ export default function DashboardPage() {
           <h3 className="text-primary text-sm sm:text-base mb-3 sm:mb-4">Entradas vs Saídas (6 meses)</h3>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={data.last6} margin={{ left: -15, right: 5, top: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.1)" />
-              <XAxis dataKey="mes" stroke="rgba(148,163,184,0.7)" fontSize={10} tickMargin={4} />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(15,23,42,0.06)" />
+              <XAxis dataKey="mes" stroke="#94A3B8" fontSize={10} tickMargin={4} />
               <YAxis
-                stroke="rgba(148,163,184,0.7)"
+                stroke="#94A3B8"
                 fontSize={10}
                 tickFormatter={(v) => formatBRLCompact(v)}
                 width={50}
@@ -234,10 +234,10 @@ export default function DashboardPage() {
                 <stop offset="100%" stopColor="#a5b4fc" stopOpacity={0.02} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.1)" />
-            <XAxis dataKey="mes" stroke="rgba(148,163,184,0.7)" fontSize={10} tickMargin={4} />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(15,23,42,0.06)" />
+            <XAxis dataKey="mes" stroke="#94A3B8" fontSize={10} tickMargin={4} />
             <YAxis
-              stroke="rgba(148,163,184,0.7)"
+              stroke="#94A3B8"
               fontSize={10}
               tickFormatter={(v) => formatBRLCompact(v)}
               width={50}
